@@ -21,6 +21,8 @@ class DashboardMonthNotifier extends Notifier<DateTime> {
   }
 
   void shift(int delta) => state = DateTime(state.year, state.month + delta);
+
+  void goToCurrent() => state = build();
 }
 
 final dashboardMonthProvider = NotifierProvider<DashboardMonthNotifier, DateTime>(DashboardMonthNotifier.new);
@@ -69,12 +71,28 @@ class DashboardScreen extends ConsumerWidget {
           final upcomingCard = const _UpcomingCard();
           final recentCard = _RecentCard(txns: thisMonth, month: month);
 
-          final header = Center(
-            child: PeriodSwitcher(
-              label: formatMonthYear(month.year, month.month),
-              onPrevious: () => ref.read(dashboardMonthProvider.notifier).shift(-1),
-              onNext: () => ref.read(dashboardMonthProvider.notifier).shift(1),
-            ),
+          final header = Column(
+            children: [
+              PeriodSwitcher(
+                label: formatMonthYear(month.year, month.month),
+                onPrevious: () => ref.read(dashboardMonthProvider.notifier).shift(-1),
+                onNext: () => ref.read(dashboardMonthProvider.notifier).shift(1),
+              ),
+              // Only shown when browsing another month.
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                child: isCurrent
+                    ? const SizedBox(width: double.infinity)
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.today, size: 18),
+                          label: Text('Back to ${formatMonthYear(now.year, now.month)}'),
+                          onPressed: ref.read(dashboardMonthProvider.notifier).goToCurrent,
+                        ),
+                      ),
+              ),
+            ],
           );
 
           if (context.isWide) {

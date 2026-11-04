@@ -31,6 +31,8 @@ class SettingsScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 720),
           child: ListView(
             children: [
+              header('Personalize'),
+              tile(Icons.palette_outlined, 'Appearance', 'Accent colour and background', '/settings/appearance'),
               header('Organize'),
               tile(
                 Icons.category_outlined,

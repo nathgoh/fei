@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../state/appearance.dart';
 import 'assistant/assistant_screen.dart';
 import 'cashflow/cashflow_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'recurring/recurring_screen.dart';
 import 'settings/accounts_screen.dart';
+import 'settings/appearance_screen.dart';
 import 'settings/assistant_settings_screen.dart';
 import 'settings/categories_screen.dart';
 import 'settings/data_screen.dart';
@@ -51,6 +54,7 @@ final router = GoRouter(
         _page('accounts', const AccountsScreen()),
         _page('assistant', const AssistantSettingsScreen()),
         _page('data', const DataScreen()),
+        _page('appearance', const AppearanceScreen()),
       ],
     ),
   ],
@@ -113,16 +117,18 @@ class _Shell extends StatelessWidget {
   }
 }
 
-class FeiApp extends StatelessWidget {
+class FeiApp extends ConsumerWidget {
   const FeiApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final look = ref.watch(appearanceProvider);
+    final theme = buildDarkTheme(accent: look.accent, background: look.background);
     return MaterialApp.router(
       title: 'Fei',
       debugShowCheckedModeBanner: false,
-      theme: buildDarkTheme(),
-      darkTheme: buildDarkTheme(),
+      theme: theme,
+      darkTheme: theme,
       themeMode: ThemeMode.dark,
       routerConfig: router,
     );
