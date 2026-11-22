@@ -63,6 +63,8 @@ class DashboardScreen extends ConsumerWidget {
             child: _SpendingComparison(
               current: cumulativeDailySpending(txns, categories, month.year, month.month),
               previous: cumulativeDailySpending(txns, categories, previous.year, previous.month),
+              month: month,
+              previousMonth: previous,
               throughDay: throughDay,
               fixedCents: summary.fixedCents,
             ),
@@ -179,19 +181,28 @@ class _SpendingComparison extends StatelessWidget {
   const _SpendingComparison({
     required this.current,
     required this.previous,
+    required this.month,
+    required this.previousMonth,
     required this.throughDay,
     required this.fixedCents,
   });
   final List<int> current;
   final List<int> previous;
+  final DateTime month;
+  final DateTime previousMonth;
   final int throughDay;
   final int fixedCents;
 
   @override
   Widget build(BuildContext context) {
     final spent = current[throughDay - 1];
-    final lastAtSameDay = previous[(throughDay - 1).clamp(0, previous.length - 1)];
+    final previousDay = throughDay.clamp(1, previous.length);
+    final lastAtSameDay = previous[previousDay - 1];
     final diff = spent - lastAtSameDay;
+    final thisLabel = monthShort(month.month);
+    final lastLabel = monthShort(previousMonth.month);
+    // Mid-month, compare with the same days of last month ("Oct 1–4"); otherwise whole months.
+    final comparedTo = previousDay < previous.length ? '$lastLabel 1–$previousDay' : lastLabel;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,18 +210,26 @@ class _SpendingComparison extends StatelessWidget {
         Text(
           lastAtSameDay == 0 && spent == 0
               ? 'No flexible spending yet'
-              : '${formatMoney(diff.abs())} ${diff > 0 ? 'more' : 'less'} than last month by day $throughDay',
+              : diff == 0
+              ? 'Same as $comparedTo'
+              : '${formatMoney(diff.abs())} ${diff > 0 ? 'more' : 'less'} than $comparedTo',
           style: context.text.bodySmall?.copyWith(color: diff > 0 ? negativeRed : incomeGreen),
         ),
         const SizedBox(height: 16),
-        SpendingComparisonChart(current: current, previous: previous, throughDay: throughDay),
+        SpendingComparisonChart(
+          current: current,
+          previous: previous,
+          throughDay: throughDay,
+          currentLabel: thisLabel,
+          previousLabel: lastLabel,
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 16,
           runSpacing: 4,
           children: [
-            _Legend(color: context.colors.primary, label: 'This month'),
-            _Legend(color: context.colors.outline, label: 'Last month'),
+            _Legend(color: context.colors.primary, label: thisLabel),
+            _Legend(color: context.colors.outline, label: lastLabel),
             if (fixedCents > 0) Text('+ ${formatMoney(fixedCents)} fixed', style: context.text.labelSmall),
           ],
         ),
@@ -336,7 +355,6 @@ class _RecentCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoryMapProvider);
-    final accounts = ref.watch(accountMapProvider);
     return SectionCard(
       title: 'Recent transactions',
       padding: const EdgeInsets.only(bottom: 8),
@@ -355,7 +373,6 @@ class _RecentCard extends ConsumerWidget {
                   TransactionTile(
                     txn: t,
                     category: categories[t.categoryId],
-                    accountName: accounts[t.accountId]?.name,
                     showDate: true,
                     onTap: () => showTransactionForm(context, txn: t),
                   ),

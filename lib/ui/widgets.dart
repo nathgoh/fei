@@ -265,13 +265,11 @@ class TransactionTile extends ConsumerWidget {
     super.key,
     required this.txn,
     required this.category,
-    this.accountName,
     this.onTap,
     this.showDate = false,
   });
   final Txn txn;
   final Category? category;
-  final String? accountName;
   final VoidCallback? onTap;
   final bool showDate;
 
@@ -281,7 +279,6 @@ class TransactionTile extends ConsumerWidget {
     final subtitle = [
       if (showDate) formatDateShort(parseYmd(txn.date)),
       if (title != category?.name) category?.name ?? 'Uncategorized',
-      ?accountName,
     ].join(' · ');
     return ListTile(
       onTap: onTap,

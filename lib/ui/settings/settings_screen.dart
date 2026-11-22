@@ -40,14 +40,6 @@ class SettingsScreen extends StatelessWidget {
                 'Groups, emoji, colours and fixed costs',
                 '/settings/categories',
               ),
-              tile(
-                Icons.credit_card,
-                'Accounts',
-                'Optional "paid with" labels for cards and cash',
-                '/settings/accounts',
-              ),
-              header('Assistant'),
-              tile(Icons.auto_awesome_outlined, 'AI assistant', 'Ollama server and models', '/settings/assistant'),
               header('Data'),
               tile(
                 Icons.import_export,

@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/appearance.dart';
-import 'assistant/assistant_screen.dart';
 import 'cashflow/cashflow_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'recurring/recurring_screen.dart';
-import 'settings/accounts_screen.dart';
 import 'settings/appearance_screen.dart';
-import 'settings/assistant_settings_screen.dart';
 import 'settings/categories_screen.dart';
 import 'settings/data_screen.dart';
 import 'settings/settings_screen.dart';
@@ -28,7 +25,6 @@ const _destinations = [
   _Destination('Transactions', Icons.receipt_long_outlined, Icons.receipt_long),
   _Destination('Cash Flow', Icons.insights_outlined, Icons.insights),
   _Destination('Recurring', Icons.event_repeat_outlined, Icons.event_repeat),
-  _Destination('Assistant', Icons.auto_awesome_outlined, Icons.auto_awesome),
 ];
 
 GoRoute _page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
@@ -43,7 +39,6 @@ final router = GoRouter(
         StatefulShellBranch(routes: [_page('/transactions', const TransactionsScreen())]),
         StatefulShellBranch(routes: [_page('/cashflow', const CashFlowScreen())]),
         StatefulShellBranch(routes: [_page('/recurring', const RecurringScreen())]),
-        StatefulShellBranch(routes: [_page('/assistant', const AssistantScreen())]),
       ],
     ),
     GoRoute(
@@ -51,8 +46,6 @@ final router = GoRouter(
       builder: (_, _) => const SettingsScreen(),
       routes: [
         _page('categories', const CategoriesScreen()),
-        _page('accounts', const AccountsScreen()),
-        _page('assistant', const AssistantSettingsScreen()),
         _page('data', const DataScreen()),
         _page('appearance', const AppearanceScreen()),
       ],

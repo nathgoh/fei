@@ -73,7 +73,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
       context,
       title: 'Erase all data?',
       message:
-          'Permanently deletes every transaction, recurring series, account and custom category on this device. '
+          'Permanently deletes every transaction, recurring series and custom category on this device. '
           'Default categories are restored. This cannot be undone.',
       confirmLabel: 'Erase everything',
     );
@@ -145,7 +145,7 @@ class _DataScreenState extends ConsumerState<DataScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Import needs Date and Amount columns. Type (Income/Expense), Category or Source, Account, '
+                      'Import needs Date and Amount columns. Type (Income/Expense), Category or Source, '
                       'Merchant/Description and Notes are used when present. Without a Type column, negative amounts '
                       'are treated as expenses. Works with this app\'s export and the web app\'s CSV exports.',
                       style: muted,

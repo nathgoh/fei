@@ -54,7 +54,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   late final TextEditingController _notes;
   late DateTime _date;
   String? _categoryId;
-  String? _accountId;
   late bool _repeat;
   Frequency _frequency = Frequency.monthly;
   DateTime? _endDate;
@@ -73,7 +72,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     _notes = TextEditingController(text: t?.notes ?? '');
     _date = t == null ? today() : parseYmd(t.date);
     _categoryId = t?.categoryId;
-    _accountId = t?.accountId;
     _repeat = widget.startRecurring;
   }
 
@@ -103,7 +101,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           kind: _kind,
           amountCents: cents.abs(),
           categoryId: _categoryId!,
-          accountId: _accountId,
           merchant: _merchant.text,
           notes: _notes.text,
           frequency: _frequency,
@@ -117,7 +114,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           amountCents: cents.abs(),
           date: ymd(_date),
           categoryId: _categoryId!,
-          accountId: _accountId,
           merchant: _merchant.text,
           notes: _notes.text,
         );
@@ -163,7 +159,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoryMapProvider);
-    final accounts = ref.watch(accountsProvider).value ?? const [];
     final category = categories[_categoryId];
     final isPast = !_date.isAfter(today());
 
@@ -234,18 +229,6 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
               prefixIcon: const Icon(Icons.storefront_outlined),
             ),
           ),
-          if (accounts.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: accounts.any((a) => a.id == _accountId) ? _accountId : null,
-              decoration: const InputDecoration(labelText: 'Paid with', prefixIcon: Icon(Icons.credit_card)),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('None')),
-                for (final a in accounts) DropdownMenuItem(value: a.id, child: Text(a.name)),
-              ],
-              onChanged: (v) => setState(() => _accountId = v),
-            ),
-          ],
           const SizedBox(height: 12),
           TextField(
             controller: _notes,

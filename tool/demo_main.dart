@@ -20,8 +20,6 @@ Future<void> main() async {
 Future<void> _seed(AppDatabase db) async {
   final rng = Random(7);
   final cats = {for (final c in await db.allCategories()) c.name: c.id};
-  final amex = await db.addAccount('Amex Gold', AccountType.credit);
-  final chase = await db.addAccount('Chase Checking', AccountType.checking);
   final now = today();
   final start = DateTime(now.year, now.month - 9, 1);
 
@@ -29,7 +27,6 @@ Future<void> _seed(AppDatabase db) async {
     kind: TxKind.income,
     amountCents: 412500,
     categoryId: cats['Paycheck']!,
-    accountId: chase,
     merchant: 'Acme Corp',
     frequency: Frequency.biweekly,
     startDate: ymd(start.add(const Duration(days: 4))),
@@ -38,7 +35,6 @@ Future<void> _seed(AppDatabase db) async {
     kind: TxKind.expense,
     amountCents: 210000,
     categoryId: cats['Rent']!,
-    accountId: chase,
     merchant: 'Landlord',
     frequency: Frequency.monthly,
     startDate: ymd(start),
@@ -47,7 +43,6 @@ Future<void> _seed(AppDatabase db) async {
     kind: TxKind.expense,
     amountCents: 1599,
     categoryId: cats['Entertainment']!,
-    accountId: amex,
     merchant: 'Netflix',
     frequency: Frequency.monthly,
     startDate: ymd(start.add(const Duration(days: 11))),
@@ -56,7 +51,6 @@ Future<void> _seed(AppDatabase db) async {
     kind: TxKind.expense,
     amountCents: 6500,
     categoryId: cats['Utility']!,
-    accountId: chase,
     merchant: 'PG&E',
     frequency: Frequency.monthly,
     startDate: ymd(start.add(const Duration(days: 19))),
@@ -65,7 +59,6 @@ Future<void> _seed(AppDatabase db) async {
     kind: TxKind.expense,
     amountCents: 4500,
     categoryId: cats['Health']!,
-    accountId: amex,
     merchant: 'Gym',
     frequency: Frequency.monthly,
     startDate: ymd(start.add(const Duration(days: 2))),
@@ -91,7 +84,6 @@ Future<void> _seed(AppDatabase db) async {
           amountCents: v.min + rng.nextInt(v.max - v.min),
           date: ymd(DateTime(month.year, month.month, 1 + rng.nextInt(lastDay))),
           categoryId: cats[entry.key]!,
-          accountId: rng.nextBool() ? amex : null,
           merchant: v.merchants[rng.nextInt(v.merchants.length)],
         );
       }
@@ -102,7 +94,6 @@ Future<void> _seed(AppDatabase db) async {
         amountCents: 186000,
         date: ymd(DateTime(month.year, month.month, 12)),
         categoryId: cats['Travel']!,
-        accountId: amex,
         merchant: 'United Airlines',
         notes: 'Flights to Tokyo',
       );

@@ -29,9 +29,6 @@ enum TxKind { income, expense }
 /// How often a recurring series repeats.
 enum Frequency { weekly, biweekly, monthly, quarterly, yearly }
 
-/// What kind of account a "paid with" label represents. Purely descriptive.
-enum AccountType { checking, savings, credit, cash, other }
-
 @DataClassName('CategoryGroup')
 class CategoryGroups extends Table with SyncColumns {
   TextColumn get name => text()();
@@ -55,15 +52,6 @@ class Categories extends Table with SyncColumns {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
-/// Optional "paid with" labels (cards, cash, …). No balances are tracked.
-@DataClassName('Account')
-class Accounts extends Table with SyncColumns {
-  TextColumn get name => text()();
-  TextColumn get type => textEnum<AccountType>().withDefault(const Constant('other'))();
-  BoolColumn get archived => boolean().withDefault(const Constant(false))();
-  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
-}
-
 /// A rule that materialises transactions on a schedule.
 ///
 /// Occurrences are generated up to today (never into the future), and
@@ -77,7 +65,6 @@ class RecurringSeriesTable extends Table with SyncColumns {
   TextColumn get kind => textEnum<TxKind>()();
   IntColumn get amountCents => integer()();
   TextColumn get categoryId => text().references(Categories, #id)();
-  TextColumn get accountId => text().nullable().references(Accounts, #id)();
   TextColumn get merchant => text().nullable()();
   TextColumn get notes => text().nullable()();
   TextColumn get frequency => textEnum<Frequency>()();
@@ -89,6 +76,7 @@ class RecurringSeriesTable extends Table with SyncColumns {
 }
 
 @DataClassName('Txn')
+@TableIndex(name: 'idx_transactions_date', columns: {#date})
 class Transactions extends Table with SyncColumns {
   TextColumn get kind => textEnum<TxKind>()();
 
@@ -98,7 +86,6 @@ class Transactions extends Table with SyncColumns {
   /// Calendar date as `YYYY-MM-DD` (lexically sortable, maps to SQL DATE).
   TextColumn get date => text()();
   TextColumn get categoryId => text().references(Categories, #id)();
-  TextColumn get accountId => text().nullable().references(Accounts, #id)();
   TextColumn get merchant => text().nullable()();
   TextColumn get notes => text().nullable()();
   TextColumn get recurringId => text().nullable().references(RecurringSeriesTable, #id)();

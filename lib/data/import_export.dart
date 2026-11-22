@@ -14,7 +14,6 @@ class ImportResult {
   int added = 0;
   int skipped = 0;
   int categoriesCreated = 0;
-  int accountsCreated = 0;
   int seriesCreated = 0;
   final List<String> warnings = [];
 
@@ -23,7 +22,6 @@ class ImportResult {
       '$added transaction${added == 1 ? '' : 's'} imported',
       if (skipped > 0) '$skipped already present',
       if (categoriesCreated > 0) '$categoriesCreated new categor${categoriesCreated == 1 ? 'y' : 'ies'}',
-      if (accountsCreated > 0) '$accountsCreated new account${accountsCreated == 1 ? '' : 's'}',
       if (seriesCreated > 0) '$seriesCreated recurring series',
     ];
     return parts.join(' · ');
@@ -44,13 +42,12 @@ final _ns = Namespace.url.value;
 /// create duplicates.
 String _importId(String key) => _uuid.v5(_ns, 'fei-import:$key');
 
-/// Finds categories/accounts by name, creating them on demand.
+/// Finds categories by name, creating them on demand.
 class _Resolver {
   _Resolver(this.db, this.result);
   final AppDatabase db;
   final ImportResult result;
   late Map<String, Category> _categories;
-  late Map<String, Account> _accounts;
   late List<CategoryGroup> _groups;
   var _paletteIndex = 0;
 
@@ -69,7 +66,6 @@ class _Resolver {
 
   Future<void> load() async {
     _categories = {for (final c in await db.allCategories()) _catKey(c.name, c.kind): c};
-    _accounts = {for (final a in await db.allAccounts()) a.name.toLowerCase(): a};
     _groups = await db.allGroups();
   }
 
@@ -102,17 +98,6 @@ class _Resolver {
     final created = (await db.allCategories()).firstWhere((c) => c.id == id);
     _categories[_catKey(name, kind)] = created;
     return created;
-  }
-
-  Future<String?> account(String rawName) async {
-    final name = rawName.trim();
-    if (name.isEmpty) return null;
-    final existing = _accounts[name.toLowerCase()];
-    if (existing != null) return existing.id;
-    final id = await db.addAccount(name, AccountType.other);
-    result.accountsCreated++;
-    _accounts = {for (final a in await db.allAccounts()) a.name.toLowerCase(): a};
-    return id;
   }
 }
 
@@ -242,7 +227,7 @@ Future<void> _importRecurringSeries(AppDatabase db, _Resolver resolver, List<Map
 // CSV
 // -----------------------------------------------------------------------------
 
-const csvHeader = ['Date', 'Type', 'Category', 'Group', 'Amount', 'Account', 'Merchant', 'Notes', 'Recurring'];
+const csvHeader = ['Date', 'Type', 'Category', 'Group', 'Amount', 'Merchant', 'Notes', 'Recurring'];
 
 /// Exports transactions (optionally just one year) as CSV in the same format
 /// [importCsv] reads.
@@ -253,7 +238,6 @@ Future<String> exportCsv(AppDatabase db, {int? year}) async {
   );
   final categories = {for (final c in await db.allCategories()) c.id: c};
   final groups = {for (final g in await db.allGroups()) g.id: g};
-  final accounts = {for (final a in await db.allAccounts()) a.id: a};
   final rows = <List<Object?>>[csvHeader];
   for (final t in txns.reversed) {
     final c = categories[t.categoryId];
@@ -263,7 +247,6 @@ Future<String> exportCsv(AppDatabase db, {int? year}) async {
       c?.name ?? '',
       c == null ? '' : groups[c.groupId]?.name ?? '',
       (t.amountCents / 100).toStringAsFixed(2),
-      t.accountId == null ? '' : accounts[t.accountId]?.name ?? '',
       t.merchant ?? '',
       t.notes ?? '',
       t.recurringId == null ? '' : 'yes',
@@ -279,7 +262,9 @@ Future<String> exportCsv(AppDatabase db, {int? year}) async {
 /// * `Type` – `Income` / `Expense`. Without it, negative amounts are
 ///   expenses and positive amounts are income (typical bank exports).
 /// * `Category` or `Source` – created if missing
-/// * `Account`, `Merchant` / `Description` / `Payee`, `Notes` / `Memo`
+/// * `Merchant` / `Description` / `Payee`, `Notes` / `Memo`
+///
+/// Other columns (such as `Account` in older exports) are ignored.
 ///
 /// This covers this app's export and the web app's expense/income exports.
 Future<ImportResult> importCsv(AppDatabase db, ImportFile file) async {
@@ -306,7 +291,6 @@ Future<ImportResult> importCsv(AppDatabase db, ImportFile file) async {
   }
   final typeCol = col(['type', 'kind']);
   final categoryCol = col(['category', 'source']);
-  final accountCol = col(['account', 'paid with']);
   final merchantCol = col(['merchant', 'description', 'payee', 'name']);
   final notesCol = col(['notes', 'memo', 'note']);
 
@@ -352,7 +336,6 @@ Future<ImportResult> importCsv(AppDatabase db, ImportFile file) async {
               amountCents: cents.abs(),
               date: date,
               categoryId: category.id,
-              accountId: Value(await resolver.account(cell(row, accountCol))),
               merchant: Value(_nullIfBlank(cell(row, merchantCol))),
               notes: Value(_nullIfBlank(cell(row, notesCol))),
             ),

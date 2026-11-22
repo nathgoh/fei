@@ -54,9 +54,16 @@ FlGridData _grid(BuildContext context, double interval) => FlGridData(
   getDrawingHorizontalLine: (_) => FlLine(color: context.colors.outlineVariant.withValues(alpha: 0.3), strokeWidth: 1),
 );
 
-/// Monarch-style cumulative spending: this month vs. last month.
+/// Monarch-style cumulative spending: the selected month vs. the one before.
 class SpendingComparisonChart extends StatelessWidget {
-  const SpendingComparisonChart({super.key, required this.current, required this.previous, required this.throughDay});
+  const SpendingComparisonChart({
+    super.key,
+    required this.current,
+    required this.previous,
+    required this.throughDay,
+    required this.currentLabel,
+    required this.previousLabel,
+  });
 
   /// Cumulative cents per day.
   final List<int> current;
@@ -64,6 +71,10 @@ class SpendingComparisonChart extends StatelessWidget {
 
   /// Last day of [current] to draw (today for the current month).
   final int throughDay;
+
+  /// Short month names for the tooltips, e.g. "Nov" and "Oct".
+  final String currentLabel;
+  final String previousLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +109,7 @@ class SpendingComparisonChart extends StatelessWidget {
               getTooltipItems: (spots) => [
                 for (final s in spots)
                   LineTooltipItem(
-                    '${s.barIndex == 0 ? 'Last month' : 'This month'} · day ${s.x.toInt()}\n${formatMoney(s.y.round())}',
+                    '${s.barIndex == 0 ? previousLabel : currentLabel} ${s.x.toInt()}\n${formatMoney(s.y.round())}',
                     context.text.labelSmall!.copyWith(color: s.bar.color),
                   ),
               ],

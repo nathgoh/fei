@@ -353,8 +353,16 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: groups.any((g) => g.id == _groupId) ? _groupId : null,
+                // Group names are user-defined, so long ones must ellipsize rather than overflow.
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Group'),
-                items: [for (final g in groups) DropdownMenuItem(value: g.id, child: Text(g.name))],
+                items: [
+                  for (final g in groups)
+                    DropdownMenuItem(
+                      value: g.id,
+                      child: Text(g.name, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
                 onChanged: (v) => setState(() => _groupId = v),
               ),
               const SizedBox(height: 16),

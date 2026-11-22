@@ -156,7 +156,6 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
   late final _merchant = TextEditingController(text: widget.series.merchant ?? '');
   late final _notes = TextEditingController(text: widget.series.notes ?? '');
   late String _categoryId = widget.series.categoryId;
-  late String? _accountId = widget.series.accountId;
   late DateTime? _endDate = widget.series.endDate == null ? null : parseYmd(widget.series.endDate!);
   bool _applyToPast = false;
 
@@ -182,7 +181,6 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
           s,
           amountCents: cents.abs(),
           categoryId: _categoryId,
-          accountId: _accountId,
           merchant: _merchant.text,
           notes: _notes.text,
           endDate: _endDate == null ? null : ymd(_endDate!),
@@ -229,7 +227,6 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoryMapProvider);
-    final accounts = ref.watch(accountsProvider).value ?? const [];
     final category = categories[_categoryId];
     final active = isSeriesActive(s);
 
@@ -269,18 +266,6 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
             controller: _merchant,
             decoration: const InputDecoration(labelText: 'Merchant / payer'),
           ),
-          if (accounts.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: accounts.any((a) => a.id == _accountId) ? _accountId : null,
-              decoration: const InputDecoration(labelText: 'Paid with'),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('None')),
-                for (final a in accounts) DropdownMenuItem(value: a.id, child: Text(a.name)),
-              ],
-              onChanged: (v) => setState(() => _accountId = v),
-            ),
-          ],
           const SizedBox(height: 12),
           TextField(
             controller: _notes,

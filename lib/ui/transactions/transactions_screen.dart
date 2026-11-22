@@ -11,12 +11,11 @@ import '../widgets.dart';
 import 'transaction_form.dart';
 
 class TransactionFilter {
-  const TransactionFilter({this.year, this.month, this.kind, this.categoryId, this.accountId, this.query = ''});
+  const TransactionFilter({this.year, this.month, this.kind, this.categoryId, this.query = ''});
   final int? year;
   final int? month;
   final TxKind? kind;
   final String? categoryId;
-  final String? accountId;
   final String query;
 
   ({String? from, String? to}) get range {
@@ -36,14 +35,12 @@ class TransactionFilter {
     Object? month = _keep,
     Object? kind = _keep,
     Object? categoryId = _keep,
-    Object? accountId = _keep,
     String? query,
   }) => TransactionFilter(
     year: year == _keep ? this.year : year as int?,
     month: month == _keep ? this.month : month as int?,
     kind: kind == _keep ? this.kind : kind as TxKind?,
     categoryId: categoryId == _keep ? this.categoryId : categoryId as String?,
-    accountId: accountId == _keep ? this.accountId : accountId as String?,
     query: query ?? this.query,
   );
 }
@@ -109,7 +106,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget build(BuildContext context) {
     final filter = ref.watch(transactionFilterProvider);
     final categories = ref.watch(categoryMapProvider);
-    final accounts = ref.watch(accountMapProvider);
     final txnsAsync = ref.watch(transactionsProvider(filter.range));
 
     return Scaffold(
@@ -152,7 +148,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           _FilterBar(
             filter: filter,
             categories: categories,
-            accounts: accounts,
             onPrevious: filter.year == null ? null : () => _shiftMonth(-1),
             onNext: filter.year == null ? null : () => _shiftMonth(1),
             onPickPeriod: _pickPeriod,
@@ -170,7 +165,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     message: all.isEmpty ? 'Tap Add to record an expense or income.' : null,
                   );
                 }
-                return _TransactionList(txns: txns, categories: categories, accounts: accounts);
+                return _TransactionList(txns: txns, categories: categories);
               },
             ),
           ),
@@ -184,7 +179,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return all.where((t) {
       if (f.kind != null && t.kind != f.kind) return false;
       if (f.categoryId != null && t.categoryId != f.categoryId) return false;
-      if (f.accountId != null && t.accountId != f.accountId) return false;
       if (q.isNotEmpty) {
         final haystack = [
           t.merchant,
@@ -203,7 +197,6 @@ class _FilterBar extends StatelessWidget {
   const _FilterBar({
     required this.filter,
     required this.categories,
-    required this.accounts,
     required this.onPrevious,
     required this.onNext,
     required this.onPickPeriod,
@@ -211,7 +204,6 @@ class _FilterBar extends StatelessWidget {
   });
   final TransactionFilter filter;
   final Map<String, Category> categories;
-  final Map<String, Account> accounts;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
   final VoidCallback onPickPeriod;
@@ -220,7 +212,6 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = categories[filter.categoryId];
-    final account = accounts[filter.accountId];
     return Column(
       children: [
         PeriodSwitcher(label: filter.periodLabel, onPrevious: onPrevious, onNext: onNext, onTap: onPickPeriod),
@@ -255,15 +246,6 @@ class _FilterBar extends StatelessWidget {
                 },
                 onDeleted: category == null ? null : () => onChanged(filter.copyWith(categoryId: null)),
               ),
-              if (accounts.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                _MenuChip<String?>(
-                  label: account?.name ?? 'All accounts',
-                  selected: account != null,
-                  options: {null: 'All accounts', for (final a in accounts.values) a.id: a.name},
-                  onSelected: (id) => onChanged(filter.copyWith(accountId: id)),
-                ),
-              ],
             ],
           ),
         ),
@@ -300,10 +282,9 @@ class _MenuChip<T> extends StatelessWidget {
 }
 
 class _TransactionList extends ConsumerWidget {
-  const _TransactionList({required this.txns, required this.categories, required this.accounts});
+  const _TransactionList({required this.txns, required this.categories});
   final List<Txn> txns;
   final Map<String, Category> categories;
-  final Map<String, Account> accounts;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -381,7 +362,6 @@ class _TransactionList extends ConsumerWidget {
               child: TransactionTile(
                 txn: t,
                 category: categories[t.categoryId],
-                accountName: accounts[t.accountId]?.name,
                 onTap: () => showTransactionForm(context, txn: t),
               ),
             );

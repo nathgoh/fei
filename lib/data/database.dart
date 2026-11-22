@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../core/dates.dart';
+import 'database.steps.dart';
 import 'seed.dart';
 import 'tables.dart';
 
@@ -9,7 +10,7 @@ export 'tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [CategoryGroups, Categories, Accounts, RecurringSeriesTable, Transactions])
+@DriftDatabase(tables: [CategoryGroups, Categories, RecurringSeriesTable, Transactions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
@@ -19,15 +20,25 @@ class AppDatabase extends _$AppDatabase {
   );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      await customStatement('CREATE INDEX idx_transactions_date ON transactions (date)');
       await seedDefaults(this);
     },
+    // Foreign keys are switched on in beforeOpen, which runs after this, so
+    // rebuilding tables here can't trip over references.
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) async {
+        // v2 drops the optional "paid with" account labels.
+        await m.alterTable(TableMigration(schema.transactions));
+        await m.alterTable(TableMigration(schema.recurringSeries));
+        await m.database.customStatement('DROP TABLE IF EXISTS accounts');
+        await m.database.customStatement('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date)');
+      },
+    ),
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
@@ -132,42 +143,6 @@ class AppDatabase extends _$AppDatabase {
   });
 
   // ---------------------------------------------------------------------------
-  // Accounts
-  // ---------------------------------------------------------------------------
-
-  Stream<List<Account>> watchAccounts() =>
-      (select(accounts)
-            ..where((a) => a.deletedAt.isNull())
-            ..orderBy([(a) => OrderingTerm(expression: a.sortOrder), (a) => OrderingTerm(expression: a.name)]))
-          .watch();
-
-  Future<List<Account>> allAccounts() => (select(accounts)..where((a) => a.deletedAt.isNull())).get();
-
-  Future<String> addAccount(String name, AccountType type) async {
-    final id = newId();
-    final count = (await allAccounts()).length;
-    await into(accounts)
-        .insert(AccountsCompanion.insert(id: Value(id), name: name, type: Value(type), sortOrder: Value(count)));
-    return id;
-  }
-
-  Future<void> updateAccount(String id, AccountsCompanion changes) =>
-      (update(accounts)..where((a) => a.id.equals(id))).write(changes.copyWith(updatedAt: Value(_now)));
-
-  /// Soft-deletes an account label; transactions keep their history but lose the label.
-  Future<void> deleteAccount(String id) => transaction(() async {
-    await (update(transactions)..where((t) => t.accountId.equals(id))).write(
-      TransactionsCompanion(accountId: const Value(null), updatedAt: Value(_now)),
-    );
-    await (update(recurringSeriesTable)..where((r) => r.accountId.equals(id))).write(
-      RecurringSeriesTableCompanion(accountId: const Value(null), updatedAt: Value(_now)),
-    );
-    await (update(
-      accounts,
-    )..where((a) => a.id.equals(id))).write(AccountsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)));
-  });
-
-  // ---------------------------------------------------------------------------
   // Transactions
   // ---------------------------------------------------------------------------
 
@@ -200,7 +175,6 @@ class AppDatabase extends _$AppDatabase {
     required int amountCents,
     required String date,
     required String categoryId,
-    String? accountId,
     String? merchant,
     String? notes,
     String? recurringId,
@@ -210,7 +184,6 @@ class AppDatabase extends _$AppDatabase {
       amountCents: Value(amountCents),
       date: Value(date),
       categoryId: Value(categoryId),
-      accountId: Value(accountId),
       merchant: Value(_blankToNull(merchant)),
       notes: Value(_blankToNull(notes)),
       updatedAt: Value(_now),
@@ -247,7 +220,6 @@ class AppDatabase extends _$AppDatabase {
     required TxKind kind,
     required int amountCents,
     required String categoryId,
-    String? accountId,
     String? merchant,
     String? notes,
     required Frequency frequency,
@@ -261,7 +233,6 @@ class AppDatabase extends _$AppDatabase {
         kind: kind,
         amountCents: amountCents,
         categoryId: categoryId,
-        accountId: Value(accountId),
         merchant: Value(_blankToNull(merchant)),
         notes: Value(_blankToNull(notes)),
         frequency: frequency,
@@ -280,7 +251,6 @@ class AppDatabase extends _$AppDatabase {
     RecurringSeries s, {
     required int amountCents,
     required String categoryId,
-    String? accountId,
     String? merchant,
     String? notes,
     String? endDate,
@@ -297,7 +267,6 @@ class AppDatabase extends _$AppDatabase {
       RecurringSeriesTableCompanion(
         amountCents: Value(amountCents),
         categoryId: Value(categoryId),
-        accountId: Value(accountId),
         merchant: Value(_blankToNull(merchant)),
         notes: Value(_blankToNull(notes)),
         endDate: Value(endDate),
@@ -310,7 +279,6 @@ class AppDatabase extends _$AppDatabase {
         TransactionsCompanion(
           amountCents: Value(amountCents),
           categoryId: Value(categoryId),
-          accountId: Value(accountId),
           merchant: Value(_blankToNull(merchant)),
           notes: Value(_blankToNull(notes)),
           updatedAt: Value(_now),
@@ -325,7 +293,6 @@ class AppDatabase extends _$AppDatabase {
     s,
     amountCents: s.amountCents,
     categoryId: s.categoryId,
-    accountId: s.accountId,
     merchant: s.merchant,
     notes: s.notes,
     endDate: todayYmd(),
@@ -364,7 +331,6 @@ class AppDatabase extends _$AppDatabase {
             amountCents: s.amountCents,
             date: ymd(d),
             categoryId: s.categoryId,
-            accountId: Value(s.accountId),
             merchant: Value(s.merchant),
             notes: Value(s.notes),
             recurringId: Value(s.id),
@@ -387,7 +353,6 @@ class AppDatabase extends _$AppDatabase {
   Future<void> eraseAll() => transaction(() async {
     await delete(transactions).go();
     await delete(recurringSeriesTable).go();
-    await delete(accounts).go();
     await delete(categories).go();
     await delete(categoryGroups).go();
     await seedDefaults(this);

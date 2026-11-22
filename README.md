@@ -11,14 +11,14 @@ server later.
 | Tab | What it does |
 | --- | --- |
 | **Dashboard** | Month at a glance: income / expenses / saved, flexible spending vs. last month, top categories, upcoming recurring, recent transactions |
-| **Transactions** | Search and filter by month, type, category and account; grouped by day; swipe to delete (with undo) |
+| **Transactions** | Search and filter by month, type and category; grouped by day; swipe to delete (with undo) |
 | **Cash Flow** | Year view: totals, savings rate, averages (with and without fixed costs), income → expenses → categories Sankey, monthly income vs. expense chart, per-category monthly averages, monthly breakdown. Tap a month or category to drill into its transactions. CSV export. |
 | **Recurring** | Recurring expenses/income with next dates, 30-day outlook and monthly cost; edit (future-only or including past), end today, or delete |
-| **Assistant** | Chat about your finances using a model on your Ollama server; the model calls tools that query the local database |
 
-**Settings:** categories (groups, emoji, colours, the *fixed cost* flag),
-accounts (optional "paid with" labels, no balances), AI assistant, import and
-export.
+**Settings:** appearance (accent colour, background), categories (groups,
+emoji, colours, the *fixed cost* flag), import and export.
+
+Fei tracks income and spending only: there are no accounts or balances.
 
 ### Differences from the web app
 
@@ -60,13 +60,6 @@ Settings → Import & export → **Choose JSON files**, then select
 already imported. CSV import also accepts the web app's CSV exports and typical
 bank exports.
 
-### AI assistant
-
-Settings → AI assistant: enter your Ollama URL (e.g. `http://192.168.68.52:11434`)
-and use **Test & fetch models**. The app talks to Ollama's OpenAI-compatible
-API. On the web build, Ollama must allow the page's origin: start it with
-`OLLAMA_ORIGINS="*"` (or the specific origin).
-
 ## Project layout
 
 ```
@@ -74,7 +67,6 @@ lib/
   core/        dates (recurrence maths) and money (integer cents) helpers
   data/        Drift schema (tables.dart), database + queries, seed, import/export
   domain/      pure analytics: period summaries, Sankey data, recurring outlook
-  ai/          agent loop (OpenAI-compatible) and finance tools
   state/       Riverpod providers
   ui/          screens, charts, theme
 tool/demo_main.dart   sample-data entrypoint
@@ -101,13 +93,31 @@ lets a future sync against Postgres work with a thin API:
 
 Timestamps are stored as ISO-8601 text, which maps directly to `timestamptz`.
 
+### Schema changes
+
+Schema snapshots live in `drift_schemas/`. After changing a table, bump
+`schemaVersion`, then run `fvm dart run drift_dev make-migrations`. That
+records the new snapshot, updates the step-by-step helper in
+`lib/data/database.steps.dart`, and regenerates `test/drift/`. Then write the
+step in `AppDatabase.migration`.
+
 ## Tests
 
 ```sh
 fvm flutter test
 ```
 
-The tests cover recurrence maths, database behaviour (soft deletes, recurring
-generation, category reassignment), analytics and the Sankey builder, JSON/CSV
-import/export round-trips, the AI tools and agent loop (with a mocked HTTP
-client), and a widget smoke test that navigates every tab.
+The tests mirror `lib/`:
+
+| Folder | Covers |
+| --- | --- |
+| `test/core` | dates and recurrence maths, money parsing and formatting |
+| `test/data` | database queries (categories, transactions, soft deletes, recurring generation and edits), JSON/CSV import and export |
+| `test/domain` | period summaries, cumulative spending, recurring outlook, the Sankey builder |
+| `test/state` | appearance settings persistence |
+| `test/ui` | theme, plus widget tests that drive each screen on a phone-sized window |
+| `test/drift` | schema migrations, against the snapshots in `drift_schemas/` |
+
+Shared helpers live in `test/support/`: an in-memory database with the default
+categories (`db.dart`), and `pumpFei` for running the whole app with seeded
+data (`app.dart`).
