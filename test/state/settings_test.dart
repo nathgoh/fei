@@ -26,13 +26,13 @@ void main() {
       final (c, _) = await container();
       final a = c.read(appearanceProvider);
       expect(a.accent, defaultAccent);
-      expect(a.background, BackgroundStyle.tinted);
+      expect(a.theme, ThemeStyle.tinted);
     });
 
     test('changes are saved and survive a restart', () async {
       final (c, sp) = await container();
       await c.read(appearanceProvider.notifier).setAccent(accentPresets['Purple']!);
-      await c.read(appearanceProvider.notifier).setBackground(BackgroundStyle.black);
+      await c.read(appearanceProvider.notifier).setTheme(ThemeStyle.black);
       expect(sp.getInt('appearance.accent'), accentPresets['Purple']!.toARGB32());
       expect(sp.getString('appearance.background'), 'black');
 
@@ -41,13 +41,13 @@ void main() {
         'appearance.background': sp.getString('appearance.background')!,
       });
       expect(restarted.read(appearanceProvider).accent, accentPresets['Purple']);
-      expect(restarted.read(appearanceProvider).background, BackgroundStyle.black);
+      expect(restarted.read(appearanceProvider).theme, ThemeStyle.black);
     });
 
     test('reset clears saved values; unknown saved values fall back to defaults', () async {
       final (c, sp) = await container({'appearance.accent': 0xFF123456, 'appearance.background': 'plaid'});
       expect(c.read(appearanceProvider).accent, const Color(0xFF123456));
-      expect(c.read(appearanceProvider).background, BackgroundStyle.tinted);
+      expect(c.read(appearanceProvider).theme, ThemeStyle.tinted);
 
       await c.read(appearanceProvider.notifier).reset();
       expect(c.read(appearanceProvider).accent, defaultAccent);

@@ -25,7 +25,7 @@ class CategoryAvatar extends StatelessWidget {
   }
 }
 
-/// An amount coloured by direction: income green with a `+`, expenses plain.
+/// An amount colored by direction: income green with a `+`, expenses plain.
 class AmountText extends StatelessWidget {
   const AmountText(this.cents, this.kind, {super.key, this.style});
   final int cents;
@@ -38,7 +38,7 @@ class AmountText extends StatelessWidget {
     return Text(
       isIncome ? '+${formatMoney(cents)}' : formatMoney(cents),
       style: (style ?? context.text.bodyLarge)?.copyWith(
-        color: isIncome ? incomeGreen : null,
+        color: isIncome ? context.incomeColor : null,
         fontWeight: FontWeight.w600,
         fontFeatures: const [FontFeature.tabularFigures()],
       ),
@@ -261,13 +261,7 @@ class AsyncView<T> extends StatelessWidget {
 
 /// A one-line transaction row used across screens.
 class TransactionTile extends ConsumerWidget {
-  const TransactionTile({
-    super.key,
-    required this.txn,
-    required this.category,
-    this.onTap,
-    this.showDate = false,
-  });
+  const TransactionTile({super.key, required this.txn, required this.category, this.onTap, this.showDate = false});
   final Txn txn;
   final Category? category;
   final VoidCallback? onTap;

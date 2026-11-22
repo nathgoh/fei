@@ -31,7 +31,7 @@ class AppearanceScreen extends ConsumerWidget {
               const _Preview(),
               const SizedBox(height: 16),
               SectionCard(
-                title: 'Accent colour',
+                title: 'Accent color',
                 child: Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -59,18 +59,19 @@ class AppearanceScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              SectionCard(
-                title: 'Background',
-                child: Column(
-                  children: [
-                    for (final b in BackgroundStyle.values)
-                      _BackgroundOption(
-                        style: b,
-                        accent: look.accent,
-                        selected: look.background == b,
-                        onTap: () => notifier.setBackground(b),
-                      ),
-                  ],
+              Card(
+                child: ListTile(
+                  title: const Text('Theme'),
+                  trailing: DropdownButton<ThemeStyle>(
+                    key: const ValueKey('theme-dropdown'),
+                    value: look.theme,
+                    underline: const SizedBox.shrink(),
+                    borderRadius: BorderRadius.circular(12),
+                    items: [for (final t in ThemeStyle.values) DropdownMenuItem(value: t, child: Text(themeLabel(t)))],
+                    onChanged: (t) {
+                      if (t != null) notifier.setTheme(t);
+                    },
+                  ),
                 ),
               ),
             ],
@@ -98,7 +99,7 @@ class _Preview extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _figure(context, 'Income', formatMoney(825000), incomeGreen)),
+                Expanded(child: _figure(context, 'Income', formatMoney(825000), context.incomeColor)),
                 Expanded(child: _figure(context, 'Expenses', formatMoney(361412), null)),
                 Expanded(child: _figure(context, 'Saved', formatMoney(463588), null)),
               ],
@@ -144,7 +145,7 @@ class _Preview extends StatelessWidget {
 class _Swatch extends StatelessWidget {
   const _Swatch({required this.color, required this.label, required this.selected, required this.onTap});
 
-  /// Null shows a rainbow (custom colour not chosen yet).
+  /// Null shows a rainbow (custom color not chosen yet).
   final Color? color;
   final String label;
   final bool selected;
@@ -186,47 +187,6 @@ class _Swatch extends StatelessWidget {
 }
 
 Color _onColor(Color c) => ThemeData.estimateBrightnessForColor(c) == Brightness.dark ? Colors.white : Colors.black;
-
-class _BackgroundOption extends StatelessWidget {
-  const _BackgroundOption({required this.style, required this.accent, required this.selected, required this.onTap});
-  final BackgroundStyle style;
-  final Color accent;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = buildColorScheme(accent: accent, background: style);
-    final description = switch (style) {
-      BackgroundStyle.tinted => 'Dark surfaces with a hint of your accent colour',
-      BackgroundStyle.neutral => 'Plain dark greys',
-      BackgroundStyle.black => 'True black, which saves battery on OLED screens',
-    };
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      onTap: onTap,
-      leading: Container(
-        width: 48,
-        height: 48,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: context.colors.outlineVariant),
-        ),
-        child: Container(
-          decoration: BoxDecoration(color: scheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(6)),
-        ),
-      ),
-      title: Text(backgroundLabel(style)),
-      subtitle: Text(description),
-      trailing: Icon(
-        selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-        color: selected ? context.colors.primary : context.colors.onSurfaceVariant,
-      ),
-    );
-  }
-}
 
 const _hueStops = [
   Color(0xFFFF0000),
@@ -270,7 +230,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   Widget build(BuildContext context) {
     final scheme = buildColorScheme(accent: _color);
     return AlertDialog(
-      title: const Text('Custom colour'),
+      title: const Text('Custom color'),
       content: SizedBox(
         width: 360,
         child: Column(
@@ -285,7 +245,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   decoration: BoxDecoration(color: _color, borderRadius: BorderRadius.circular(12)),
                 ),
                 const SizedBox(width: 12),
-                // How the generated palette will look with this colour.
+                // How the generated palette will look with this color.
                 for (final c in [scheme.primary, scheme.primaryContainer, scheme.secondary, scheme.tertiary])
                   Container(
                     width: 24,
@@ -295,10 +255,13 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Text('Hex', style: context.text.labelMedium),
+            const SizedBox(height: 6),
             TextField(
+              key: const ValueKey('hex-field'),
               controller: _hex,
-              decoration: const InputDecoration(labelText: 'Hex', prefixText: '#', isDense: true),
+              decoration: const InputDecoration(prefixText: '#', isDense: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp('[0-9a-fA-F]')),
                 LengthLimitingTextInputFormatter(6),
@@ -334,7 +297,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(context, _color), child: const Text('Use colour')),
+        FilledButton(onPressed: () => Navigator.pop(context, _color), child: const Text('Use color')),
       ],
     );
   }

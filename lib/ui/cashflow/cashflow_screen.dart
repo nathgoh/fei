@@ -103,12 +103,12 @@ class CashFlowScreen extends ConsumerWidget {
               header,
               TileGrid(
                 children: [
-                  StatTile(label: 'Total income', value: formatMoney(s.incomeCents), valueColor: incomeGreen),
+                  StatTile(label: 'Total income', value: formatMoney(s.incomeCents), valueColor: context.incomeColor),
                   StatTile(label: 'Total expenses', value: formatMoney(s.expenseCents)),
                   StatTile(
                     label: 'Total savings',
                     value: formatMoney(s.savingsCents),
-                    valueColor: s.savingsCents < 0 ? negativeRed : null,
+                    valueColor: s.savingsCents < 0 ? context.negativeColor : null,
                   ),
                   StatTile(
                     label: 'Saved',
@@ -147,7 +147,7 @@ class CashFlowScreen extends ConsumerWidget {
                       onMonthTap: (m) => _drillDown(context, ref, year, month: m),
                     ),
                     const SizedBox(height: 8),
-                    const ChartLegend({'Income': incomeGreen, 'Expenses': expenseOrange}),
+                    ChartLegend({'Income': context.incomeColor, 'Expenses': context.expenseColor}),
                   ],
                 ),
               ),
@@ -328,11 +328,11 @@ class _MonthlyTable extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(flex: 3, child: Text(narrow ? monthShort(m.month) : monthName(m.month), style: body)),
-                    amount(formatMoney(m.incomeCents), color: incomeGreen),
+                    amount(formatMoney(m.incomeCents), color: context.incomeColor),
                     amount(formatMoney(m.expenseCents)),
                     amount(
                       formatMoney(m.savingsCents),
-                      color: m.savingsCents < 0 ? negativeRed : null,
+                      color: m.savingsCents < 0 ? context.negativeColor : null,
                       weight: FontWeight.w600,
                     ),
                   ],

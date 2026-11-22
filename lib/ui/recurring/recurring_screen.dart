@@ -22,11 +22,11 @@ class RecurringScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Recurring'), actions: const [SettingsButton()]),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         heroTag: null, // tabs stay mounted in an IndexedStack; shared default tags clash
         onPressed: () => showTransactionForm(context, startRecurring: true),
-        icon: const Icon(Icons.add),
-        label: const Text('New recurring'),
+        tooltip: 'Add recurring',
+        child: const Icon(Icons.add),
       ),
       body: AsyncView(
         seriesAsync,
@@ -76,7 +76,7 @@ class RecurringScreen extends ConsumerWidget {
                   StatTile(
                     label: 'Recurring income',
                     value: formatMoney(incomeMonthly),
-                    valueColor: incomeGreen,
+                    valueColor: context.incomeColor,
                     caption: 'per month',
                   ),
                 ],

@@ -15,8 +15,8 @@ server later.
 | **Cash Flow** | Year view: totals, savings rate, averages (with and without fixed costs), income → expenses → categories Sankey, monthly income vs. expense chart, per-category monthly averages, monthly breakdown. Tap a month or category to drill into its transactions. CSV export. |
 | **Recurring** | Recurring expenses/income with next dates, 30-day outlook and monthly cost; edit (future-only or including past), end today, or delete |
 
-**Settings:** appearance (accent colour, background), categories (groups,
-emoji, colours, the *fixed cost* flag), import and export.
+**Settings:** appearance (accent color, background), categories (groups,
+icons, colors, the *fixed cost* flag), import and export.
 
 Fei tracks income and spending only: there are no accounts or balances.
 

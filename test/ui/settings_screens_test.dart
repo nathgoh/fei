@@ -16,7 +16,7 @@ void main() {
   ThemeData theme(WidgetTester tester) => Theme.of(tester.element(find.byType(Scaffold).first));
 
   group('appearance', () {
-    testWidgets('accent, custom colour and background are applied and saved; reset restores defaults', (tester) async {
+    testWidgets('accent, custom color and theme are applied and saved; reset restores defaults', (tester) async {
       final (_, prefs) = await pumpFei(tester);
       await openSettingsPage(tester, 'Appearance');
 
@@ -28,18 +28,28 @@ void main() {
       // The custom picker must fit on a phone (layout overflow throws in tests).
       await tester.tap(find.bySemanticsLabel('Custom accent'));
       await settle(tester);
-      expect(find.text('Custom colour'), findsOneWidget);
-      await tester.enterText(find.widgetWithText(TextField, 'Hex'), 'FF7043');
-      await tester.tap(find.text('Use colour'));
+      expect(find.text('Custom color'), findsOneWidget);
+      await tester.enterText(find.byKey(const ValueKey('hex-field')), 'FF7043');
+      await tester.tap(find.text('Use color'));
       await settle(tester);
       expect(prefs.getInt('appearance.accent'), 0xFFFF7043);
 
-      await tester.ensureVisible(find.text('Pure black'));
-      await settle(tester);
-      await tester.tap(find.text('Pure black'));
-      await settle(tester);
+      Future<void> pickTheme(String label) async {
+        await tester.ensureVisible(find.byKey(const ValueKey('theme-dropdown')));
+        await settle(tester);
+        await tester.tap(find.byKey(const ValueKey('theme-dropdown')));
+        await settle(tester);
+        await tester.tap(find.text(label).last);
+        await settle(tester);
+      }
+
+      await pickTheme('AMOLED Dark');
       expect(prefs.getString('appearance.background'), 'black');
       expect(theme(tester).scaffoldBackgroundColor, const Color(0xFF000000));
+
+      await pickTheme('Light');
+      expect(prefs.getString('appearance.background'), 'light');
+      expect(theme(tester).brightness, Brightness.light);
 
       await tester.tap(find.text('Reset'));
       await settle(tester);
@@ -54,7 +64,7 @@ void main() {
       await openSettingsPage(tester, 'Appearance');
       await tester.tap(find.bySemanticsLabel('Custom accent'));
       await settle(tester);
-      await tester.enterText(find.widgetWithText(TextField, 'Hex'), '00FF00');
+      await tester.enterText(find.byKey(const ValueKey('hex-field')), '00FF00');
       await tester.tap(find.text('Cancel'));
       await settle(tester);
       expect(prefs.getInt('appearance.accent'), isNull);
@@ -66,7 +76,7 @@ void main() {
         tester,
         prefs: {'appearance.accent': accentPresets['Orange']!.toARGB32(), 'appearance.background': 'neutral'},
       );
-      final expected = buildColorScheme(accent: accentPresets['Orange']!, background: BackgroundStyle.neutral);
+      final expected = buildColorScheme(accent: accentPresets['Orange']!, theme: ThemeStyle.neutral);
       expect(theme(tester).colorScheme.primary, expected.primary);
       expect(theme(tester).scaffoldBackgroundColor, expected.surface);
       await unmount(tester);

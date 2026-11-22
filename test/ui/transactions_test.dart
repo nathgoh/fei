@@ -47,7 +47,7 @@ void main() {
   testWidgets('the form insists on an amount and a category', (tester) async {
     final (db, _) = await pumpFei(tester);
     await openTab(tester, 'Transactions');
-    await tester.tap(find.text('Add'));
+    await tester.tap(find.byTooltip('Add transaction'));
     await settle(tester);
     await tester.tap(find.text('Add transaction').last);
     await settle(tester);
@@ -64,7 +64,7 @@ void main() {
   testWidgets('Repeat creates a recurring series', (tester) async {
     final (db, _) = await pumpFei(tester);
     await openTab(tester, 'Recurring');
-    await tester.tap(find.text('New recurring'));
+    await tester.tap(find.byTooltip('Add recurring'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '15.99');
     await tester.tap(find.text('Choose a category'));

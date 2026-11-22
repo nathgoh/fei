@@ -137,11 +137,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const SettingsButton(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         heroTag: null, // tabs stay mounted in an IndexedStack; shared default tags clash
         onPressed: () => showTransactionForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add'),
+        tooltip: 'Add transaction',
+        child: const Icon(Icons.add),
       ),
       body: Column(
         children: [

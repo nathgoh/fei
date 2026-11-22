@@ -178,13 +178,13 @@ class MonthlyCashFlowChart extends StatelessWidget {
                 barRods: [
                   BarChartRodData(
                     toY: m.incomeCents.toDouble(),
-                    color: incomeGreen,
+                    color: context.incomeColor,
                     width: 7,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
                   ),
                   BarChartRodData(
                     toY: m.expenseCents.toDouble(),
-                    color: expenseOrange,
+                    color: context.expenseColor,
                     width: 7,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
                   ),

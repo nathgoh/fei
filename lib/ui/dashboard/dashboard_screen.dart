@@ -89,7 +89,7 @@ class DashboardScreen extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: ActionChip(
                           avatar: const Icon(Icons.today, size: 18),
-                          label: Text('Back to ${formatMonthYear(now.year, now.month)}'),
+                          label: Text('Present'),
                           onPressed: ref.read(dashboardMonthProvider.notifier).goToCurrent,
                         ),
                       ),
@@ -148,9 +148,9 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                figure('Income', summary.incomeCents, color: incomeGreen),
+                figure('Income', summary.incomeCents, color: context.incomeColor),
                 figure('Expenses', summary.expenseCents),
-                figure('Saved', summary.savingsCents, color: summary.savingsCents < 0 ? negativeRed : null),
+                figure('Saved', summary.savingsCents, color: summary.savingsCents < 0 ? context.negativeColor : null),
               ],
             ),
             if (rate != null) ...[
@@ -160,7 +160,7 @@ class _SummaryCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: (rate / 100).clamp(0, 1),
                   minHeight: 8,
-                  color: rate < 0 ? negativeRed : incomeGreen,
+                  color: rate < 0 ? context.negativeColor : context.incomeColor,
                   backgroundColor: context.colors.surfaceContainerHighest,
                 ),
               ),
@@ -213,7 +213,7 @@ class _SpendingComparison extends StatelessWidget {
               : diff == 0
               ? 'Same as $comparedTo'
               : '${formatMoney(diff.abs())} ${diff > 0 ? 'more' : 'less'} than $comparedTo',
-          style: context.text.bodySmall?.copyWith(color: diff > 0 ? negativeRed : incomeGreen),
+          style: context.text.bodySmall?.copyWith(color: diff > 0 ? context.negativeColor : context.incomeColor),
         ),
         const SizedBox(height: 16),
         SpendingComparisonChart(

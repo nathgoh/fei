@@ -29,16 +29,20 @@ const _destinations = [
 
 GoRoute _page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
 
+/// One navigator per tab. Bottom sheets (like the add-transaction form) open
+/// on these, under the nav bar, so they have to be closed when you leave a tab.
+final _branchKeys = List.generate(4, (i) => GlobalKey<NavigatorState>(debugLabel: 'tab $i'));
+
 final router = GoRouter(
   initialLocation: '/dashboard',
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => _Shell(shell: shell),
       branches: [
-        StatefulShellBranch(routes: [_page('/dashboard', const DashboardScreen())]),
-        StatefulShellBranch(routes: [_page('/transactions', const TransactionsScreen())]),
-        StatefulShellBranch(routes: [_page('/cashflow', const CashFlowScreen())]),
-        StatefulShellBranch(routes: [_page('/recurring', const RecurringScreen())]),
+        StatefulShellBranch(navigatorKey: _branchKeys[0], routes: [_page('/dashboard', const DashboardScreen())]),
+        StatefulShellBranch(navigatorKey: _branchKeys[1], routes: [_page('/transactions', const TransactionsScreen())]),
+        StatefulShellBranch(navigatorKey: _branchKeys[2], routes: [_page('/cashflow', const CashFlowScreen())]),
+        StatefulShellBranch(navigatorKey: _branchKeys[3], routes: [_page('/recurring', const RecurringScreen())]),
       ],
     ),
     GoRoute(
@@ -57,7 +61,15 @@ class _Shell extends StatelessWidget {
   const _Shell({required this.shell});
   final StatefulNavigationShell shell;
 
-  void _go(int index) => shell.goBranch(index, initialLocation: index == shell.currentIndex);
+  void _go(int index) {
+    if (index != shell.currentIndex) {
+      // Close whatever the tab being left has open (sheets, pickers, menus)
+      // and drop the keyboard, so it isn't still there when you come back.
+      _branchKeys[shell.currentIndex].currentState?.popUntil((route) => route is! PopupRoute);
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    shell.goBranch(index, initialLocation: index == shell.currentIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,13 +128,11 @@ class FeiApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final look = ref.watch(appearanceProvider);
-    final theme = buildDarkTheme(accent: look.accent, background: look.background);
     return MaterialApp.router(
       title: 'Fei',
       debugShowCheckedModeBanner: false,
-      theme: theme,
-      darkTheme: theme,
-      themeMode: ThemeMode.dark,
+      // The in-app Theme setting decides light or dark, not the device.
+      theme: buildTheme(accent: look.accent, theme: look.theme),
       routerConfig: router,
     );
   }

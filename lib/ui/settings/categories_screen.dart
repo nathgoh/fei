@@ -318,8 +318,9 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                     child: TextField(
                       controller: _emoji,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 24),
-                      decoration: const InputDecoration(labelText: 'Emoji'),
+                      // Line height 1.0 keeps the line at 24px, matching the Name field so both boxes align.
+                      style: const TextStyle(fontSize: 24, height: 1.0),
+                      decoration: const InputDecoration(labelText: 'Icon'),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -334,7 +335,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
@@ -365,9 +366,9 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                 ],
                 onChanged: (v) => setState(() => _groupId = v),
               ),
-              const SizedBox(height: 16),
-              Text('Chart colour', style: context.text.labelLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
+              Text('Chart color', style: context.text.labelLarge),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -390,7 +391,8 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                     ),
                 ],
               ),
-              if (widget.kind == TxKind.expense)
+              if (widget.kind == TxKind.expense) ...[
+                const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Fixed cost'),
@@ -398,6 +400,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                   value: _fixed,
                   onChanged: (v) => setState(() => _fixed = v),
                 ),
+              ],
             ],
           ),
         ),

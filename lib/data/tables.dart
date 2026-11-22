@@ -43,7 +43,7 @@ class Categories extends Table with SyncColumns {
   TextColumn get kind => textEnum<TxKind>()();
   TextColumn get emoji => text().withDefault(const Constant('🏷️'))();
 
-  /// ARGB colour used in charts.
+  /// ARGB color used in charts.
   IntColumn get color => integer().withDefault(const Constant(0xFF888888))();
 
   /// Fixed costs (e.g. rent) are excluded from "flexible" spending and the

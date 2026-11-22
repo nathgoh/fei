@@ -17,7 +17,7 @@ class SeedGroup {
   final List<SeedCategory> categories;
 }
 
-/// Defaults mirror the web app's categories and chart colours, organised into
+/// Defaults mirror the web app's categories and chart colors, organised into
 /// Monarch-style groups.
 const defaultGroups = [
   SeedGroup('Income', TxKind.income, [

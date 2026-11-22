@@ -32,12 +32,12 @@ class SettingsScreen extends StatelessWidget {
           child: ListView(
             children: [
               header('Personalize'),
-              tile(Icons.palette_outlined, 'Appearance', 'Accent colour and background', '/settings/appearance'),
+              tile(Icons.palette_outlined, 'Appearance', 'Accent color and theme', '/settings/appearance'),
               header('Organize'),
               tile(
                 Icons.category_outlined,
                 'Categories',
-                'Groups, emoji, colours and fixed costs',
+                'Groups, icons, colors and fixed costs',
                 '/settings/categories',
               ),
               header('Data'),

@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('pure black and neutral backgrounds are untinted', () {
-    final black = buildColorScheme(accent: accentPresets['Purple']!, background: BackgroundStyle.black);
+    final black = buildColorScheme(accent: accentPresets['Purple']!, theme: ThemeStyle.black);
     expect(black.surface, const Color(0xFF000000));
-    final neutral = buildColorScheme(accent: accentPresets['Purple']!, background: BackgroundStyle.neutral);
+    final neutral = buildColorScheme(accent: accentPresets['Purple']!, theme: ThemeStyle.neutral);
     expect(neutral.surface.r, neutral.surface.g);
     expect(neutral.surfaceContainer.g, neutral.surfaceContainer.b);
   });
@@ -19,9 +19,9 @@ void main() {
     expect(orange.primary.r, greaterThan(orange.primary.b));
   });
 
-  test('surfaces get lighter from lowest to highest for every style', () {
-    for (final style in BackgroundStyle.values) {
-      final s = buildColorScheme(background: style);
+  test('surfaces step away from the background, from lowest to highest, for every theme', () {
+    for (final style in ThemeStyle.values) {
+      final s = buildColorScheme(theme: style);
       final tones = [
         s.surfaceContainerLowest,
         s.surfaceContainerLow,
@@ -29,24 +29,30 @@ void main() {
         s.surfaceContainerHigh,
         s.surfaceContainerHighest,
       ].map((c) => c.computeLuminance()).toList();
+      // Dark themes raise surfaces by lightening them; the light theme by darkening.
+      final light = style == ThemeStyle.light;
       for (var i = 1; i < tones.length; i++) {
-        expect(tones[i], greaterThanOrEqualTo(tones[i - 1]), reason: '$style step $i');
+        expect(
+          tones[i],
+          light ? lessThanOrEqualTo(tones[i - 1]) : greaterThanOrEqualTo(tones[i - 1]),
+          reason: '$style step $i',
+        );
       }
     }
   });
 
-  test('dark theme: dialogs sit below input fills so text fields stay visible', () {
-    for (final style in BackgroundStyle.values) {
-      final t = buildDarkTheme(background: style);
-      expect(t.brightness, Brightness.dark);
+  test('dialogs sit below input fills so text fields stay visible', () {
+    for (final style in ThemeStyle.values) {
+      final t = buildTheme(theme: style);
+      expect(t.brightness, style == ThemeStyle.light ? Brightness.light : Brightness.dark);
       expect(t.scaffoldBackgroundColor, t.colorScheme.surface);
       expect(t.dialogTheme.backgroundColor, isNot(t.inputDecorationTheme.fillColor), reason: '$style');
     }
   });
 
-  test('every preset and background has a label', () {
+  test('every preset and theme has a label', () {
     expect(accentPresets, hasLength(10));
     expect(accentPresets.values, contains(defaultAccent));
-    expect(BackgroundStyle.values.map(backgroundLabel), ['Tinted', 'Neutral', 'Pure black']);
+    expect(ThemeStyle.values.map(themeLabel), ['Tinted', 'Light', 'Dark', 'AMOLED Dark']);
   });
 }
