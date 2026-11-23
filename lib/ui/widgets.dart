@@ -127,13 +127,12 @@ class StatTile extends StatelessWidget {
 
 /// Lays out [children] in a responsive grid of equal-width tiles.
 class TileGrid extends StatelessWidget {
-  const TileGrid({super.key, required this.children, this.minTileWidth = 160, this.spacing = 12});
+  const TileGrid({super.key, required this.children});
   final List<Widget> children;
-  final double minTileWidth;
-  final double spacing;
 
   @override
   Widget build(BuildContext context) {
+    const minTileWidth = 160, spacing = 12.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = (constraints.maxWidth / minTileWidth).floor().clamp(1, children.length);
@@ -305,7 +304,6 @@ Future<bool> confirm(
   required String title,
   required String message,
   String confirmLabel = 'Delete',
-  bool destructive = true,
 }) async {
   final result = await showDialog<bool>(
     context: context,
@@ -315,9 +313,7 @@ Future<bool> confirm(
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         FilledButton(
-          style: destructive
-              ? FilledButton.styleFrom(backgroundColor: context.colors.error, foregroundColor: context.colors.onError)
-              : null,
+          style: FilledButton.styleFrom(backgroundColor: context.colors.error, foregroundColor: context.colors.onError),
           onPressed: () => Navigator.pop(context, true),
           child: Text(confirmLabel),
         ),

@@ -124,7 +124,6 @@ ThemeData buildTheme({Color accent = defaultAccent, ThemeStyle theme = ThemeStyl
 }
 
 extension ThemeX on BuildContext {
-  ThemeData get theme => Theme.of(this);
   ColorScheme get colors => Theme.of(this).colorScheme;
   TextTheme get text => Theme.of(this).textTheme;
   bool get isWide => MediaQuery.sizeOf(this).width >= 840;

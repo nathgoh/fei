@@ -18,7 +18,6 @@ class MonthTotals {
   final int month;
   int incomeCents = 0;
   int expenseCents = 0;
-  int fixedCents = 0;
   final Map<String, int> expenseByCategory = {};
 
   int get savingsCents => incomeCents - expenseCents;
@@ -66,7 +65,6 @@ class PeriodSummary {
 
   int get avgExpensePerMonth => monthSpan == 0 ? 0 : (expenseCents / monthSpan).round();
   int get avgFlexiblePerMonth => monthSpan == 0 ? 0 : (flexibleCents / monthSpan).round();
-  int get avgIncomePerMonth => monthSpan == 0 ? 0 : (incomeCents / monthSpan).round();
 
   int monthlyAverageFor(String categoryId) {
     if (monthSpan == 0) return 0;
@@ -97,10 +95,7 @@ PeriodSummary summarize(List<Txn> txns, Map<String, Category> categories) {
       month.expenseByCategory.update(t.categoryId, (v) => v + t.amountCents, ifAbsent: () => t.amountCents);
       expenseBy.update(t.categoryId, (v) => v + t.amountCents, ifAbsent: () => t.amountCents);
       expenseCount.update(t.categoryId, (v) => v + 1, ifAbsent: () => 1);
-      if (category?.isFixed ?? false) {
-        fixed += t.amountCents;
-        month.fixedCents += t.amountCents;
-      }
+      if (category?.isFixed ?? false) fixed += t.amountCents;
     }
   }
 
@@ -124,20 +119,14 @@ PeriodSummary summarize(List<Txn> txns, Map<String, Category> categories) {
   );
 }
 
-/// Running total of spending by day of month (index 0 = day 1).
-/// [excludeFixed] leaves out fixed costs so a rent payment doesn't dominate.
-List<int> cumulativeDailySpending(
-  List<Txn> txns,
-  Map<String, Category> categories,
-  int year,
-  int month, {
-  bool excludeFixed = true,
-}) {
+/// Running total of flexible spending by day of month (index 0 = day 1).
+/// Fixed costs are left out so a rent payment doesn't dominate.
+List<int> cumulativeDailySpending(List<Txn> txns, Map<String, Category> categories, int year, int month) {
   final days = List.filled(daysInMonth(year, month), 0);
   final prefix = monthKey(year, month);
   for (final t in txns) {
     if (t.kind != TxKind.expense || !t.date.startsWith(prefix)) continue;
-    if (excludeFixed && (categories[t.categoryId]?.isFixed ?? false)) continue;
+    if (categories[t.categoryId]?.isFixed ?? false) continue;
     days[int.parse(t.date.substring(8, 10)) - 1] += t.amountCents;
   }
   for (var i = 1; i < days.length; i++) {

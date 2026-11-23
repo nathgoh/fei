@@ -29,7 +29,6 @@ class _CashFlowWaterfallChartState extends State<CashFlowWaterfallChart> {
   Widget build(BuildContext context) {
     final w = CashFlowWaterfall.of(widget.summary);
     if (w.isEmpty) return const SizedBox.shrink();
-    final muted = context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

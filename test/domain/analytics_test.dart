@@ -38,7 +38,6 @@ void main() {
       expect(s.activeMonths.map((m) => m.month), [1, 3]);
       expect(s.avgExpensePerMonth, 163333);
       expect(s.avgFlexiblePerMonth, 30000);
-      expect(s.avgIncomePerMonth, 333333);
       final grocery = cats.values.firstWhere((c) => c.name == 'Grocery');
       expect(s.monthlyAverageFor(grocery.id), 30000);
     });
@@ -51,7 +50,6 @@ void main() {
       expect(march.month, 3);
       expect(march.incomeCents, 500000);
       expect(march.expenseCents, 260000);
-      expect(march.fixedCents, 200000);
       expect(march.savingsCents, 240000);
       expect(march.expenseByCategory.values.fold<int>(0, (a, b) => a + b), 260000);
       expect((await summary()).months[1].hasData, isFalse);
@@ -104,9 +102,6 @@ void main() {
     expect(days[8], 1000);
     expect(days[9], 1500);
     expect(days.last, 1500);
-
-    final withFixed = cumulativeDailySpending(txns, cats, 2026, 2, excludeFixed: false);
-    expect(withFixed.last, 201500);
   });
 
   group('recurring outlook', () {
