@@ -59,10 +59,9 @@ class CashFlowScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final year = ref.watch(cashFlowYearProvider);
+    // Newest first, and never empty.
     final years = ref.watch(yearsProvider).value ?? [year];
     final summaryAsync = ref.watch(yearSummaryProvider(year));
-    final minYear = years.isEmpty ? year : years.last;
-    final maxYear = years.isEmpty ? year : years.first;
 
     return Scaffold(
       appBar: AppBar(
@@ -82,8 +81,8 @@ class CashFlowScreen extends ConsumerWidget {
           final header = Center(
             child: PeriodSwitcher(
               label: '$year',
-              onPrevious: year > minYear ? () => ref.read(cashFlowYearProvider.notifier).set(year - 1) : null,
-              onNext: year < maxYear ? () => ref.read(cashFlowYearProvider.notifier).set(year + 1) : null,
+              onPrevious: year > years.last ? () => ref.read(cashFlowYearProvider.notifier).set(year - 1) : null,
+              onNext: year < years.first ? () => ref.read(cashFlowYearProvider.notifier).set(year + 1) : null,
             ),
           );
           if (s.isEmpty) {
