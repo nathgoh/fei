@@ -178,7 +178,7 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
     await ref
         .read(databaseProvider)
         .updateSeries(
-          s,
+          s.id,
           amountCents: cents.abs(),
           categoryId: _categoryId,
           merchant: _merchant.text,

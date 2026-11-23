@@ -224,14 +224,14 @@ void main() {
       await db.materializeRecurring(asOf: DateTime(2026, 6, 1));
       var s = (await db.allRecurring()).single;
 
-      await db.updateSeries(s, amountCents: 120000, categoryId: s.categoryId, endDate: s.endDate);
+      await db.updateSeries(s.id, amountCents: 120000, categoryId: s.categoryId, endDate: s.endDate);
       expect((await db.allRecurring()).single.amountCents, 120000);
       expect((await db.transactionsBetween()).every((t) => t.amountCents == 100000), isTrue);
 
       s = (await db.allRecurring()).single;
       final home = await categoryNamed(db, 'Home');
       await db.updateSeries(
-        s,
+        s.id,
         amountCents: 120000,
         categoryId: home.id,
         merchant: 'Landlord',
@@ -243,7 +243,7 @@ void main() {
       expect(rewritten.every((t) => t.merchant == 'Landlord'), isTrue);
 
       s = (await db.allRecurring()).single;
-      await db.updateSeries(s, amountCents: 120000, categoryId: s.categoryId, endDate: '2026-03-15');
+      await db.updateSeries(s.id, amountCents: 120000, categoryId: s.categoryId, endDate: '2026-03-15');
       expect((await db.transactionsBetween()).map((t) => t.date).toSet(), {'2026-01-01', '2026-02-01', '2026-03-01'});
       expect((await db.allRecurring()).single.generatedThrough, '2026-03-15');
     });
@@ -269,6 +269,24 @@ void main() {
       expect((await db.transactionsBetween()).map((t) => t.amountCents).toSet(), {1});
       // A deleted series is never generated again.
       expect(await db.materializeRecurring(asOf: DateTime(2026, 12, 1)), 0);
+    });
+
+    test('saving a series from a stale copy does not generate an occurrence twice', () async {
+      await addSeries(
+        db,
+        category: 'Grocery',
+        cents: 1000,
+        start: '2026-01-05',
+        end: '2026-02-02',
+        frequency: Frequency.weekly,
+      );
+      await db.materializeRecurring(asOf: DateTime(2026, 1, 12));
+      final stale = (await db.allRecurring()).single; // the editor opens
+      await db.materializeRecurring(asOf: DateTime(2026, 1, 19)); // the app resumes a week later
+      await db.updateSeries(stale.id, amountCents: 1500, categoryId: stale.categoryId, endDate: stale.endDate);
+
+      final dates = [for (final t in await db.transactionsBetween()) t.date]..sort();
+      expect(dates, ['2026-01-05', '2026-01-12', '2026-01-19', '2026-01-26', '2026-02-02']);
     });
 
     // Only a time zone with daylight saving can catch a regression here; the

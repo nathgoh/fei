@@ -248,7 +248,7 @@ class AppDatabase extends _$AppDatabase {
   /// [applyToPast] they're also written to already-generated transactions.
   /// Moving the end date earlier removes generated occurrences after it.
   Future<void> updateSeries(
-    RecurringSeries s, {
+    String id, {
     required int amountCents,
     required String categoryId,
     String? merchant,
@@ -256,14 +256,18 @@ class AppDatabase extends _$AppDatabase {
     String? endDate,
     bool applyToPast = false,
   }) => transaction(() async {
-    var generatedThrough = s.generatedThrough;
+    // Read progress here rather than from a caller's copy: an editor left open
+    // while occurrences were generated would write an older date back, and
+    // those occurrences would be generated again.
+    final current = await (select(recurringSeriesTable)..where((r) => r.id.equals(id))).getSingle();
+    var generatedThrough = current.generatedThrough;
     if (endDate != null && generatedThrough != null && endDate.compareTo(generatedThrough) < 0) {
-      await (update(transactions)..where((t) => t.recurringId.equals(s.id) & t.date.isBiggerThanValue(endDate))).write(
+      await (update(transactions)..where((t) => t.recurringId.equals(id) & t.date.isBiggerThanValue(endDate))).write(
         TransactionsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)),
       );
       generatedThrough = endDate;
     }
-    await (update(recurringSeriesTable)..where((r) => r.id.equals(s.id))).write(
+    await (update(recurringSeriesTable)..where((r) => r.id.equals(id))).write(
       RecurringSeriesTableCompanion(
         amountCents: Value(amountCents),
         categoryId: Value(categoryId),
@@ -275,7 +279,7 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
     if (applyToPast) {
-      await (update(transactions)..where((t) => t.recurringId.equals(s.id) & t.deletedAt.isNull())).write(
+      await (update(transactions)..where((t) => t.recurringId.equals(id) & t.deletedAt.isNull())).write(
         TransactionsCompanion(
           amountCents: Value(amountCents),
           categoryId: Value(categoryId),
@@ -285,12 +289,12 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
     }
-    await materializeRecurring(seriesId: s.id);
+    await materializeRecurring(seriesId: id);
   });
 
   /// Ends a series today; past occurrences are kept.
   Future<void> stopSeries(RecurringSeries s) => updateSeries(
-    s,
+    s.id,
     amountCents: s.amountCents,
     categoryId: s.categoryId,
     merchant: s.merchant,
