@@ -145,17 +145,24 @@ Future<ImportResult> importWebAppJson(AppDatabase db, List<ImportFile> files) as
       if (data is! Map || data['records'] is! List) continue;
       final records = (data['records'] as List).whereType<Map>().toList();
       final isIncome = records.any((r) => r.containsKey('source')) || p.name.toLowerCase().contains('income');
+      final kind = isIncome ? TxKind.income : TxKind.expense;
 
-      if (!isIncome) await _importRecurringSeries(db, resolver, records, result);
-
+      // Check every record before using any, so a bad one is skipped rather
+      // than breaking recurring grouping or rolling back the whole import.
+      final valid = <_WebRecord>[];
       for (final r in records) {
-        final date = r['date']?.toString();
+        final date = _parseDate(r['date']?.toString() ?? '');
         final amount = r['amount'];
-        if (date == null || date.length < 10 || amount is! num) {
+        if (date == null || amount is! num) {
           result.warnings.add('${p.name}: skipped malformed record ${r['id']}');
           continue;
         }
-        final kind = isIncome ? TxKind.income : TxKind.expense;
+        valid.add((raw: r, date: date, cents: centsFromNum(amount).abs()));
+      }
+
+      if (!isIncome) await _importRecurringSeries(db, resolver, valid, result);
+
+      for (final (raw: r, :date, :cents) in valid) {
         final id = _importId('webapp:${kind.name}:${r['id']}');
         if (existing.contains(id)) {
           result.skipped++;
@@ -169,8 +176,8 @@ Future<ImportResult> importWebAppJson(AppDatabase db, List<ImportFile> files) as
               TransactionsCompanion.insert(
                 id: Value(id),
                 kind: kind,
-                amountCents: centsFromNum(amount).abs(),
-                date: date.substring(0, 10),
+                amountCents: cents,
+                date: date,
                 categoryId: category.id,
                 notes: Value(_nullIfBlank(r['notes']?.toString())),
                 recurringId: Value(
@@ -186,33 +193,41 @@ Future<ImportResult> importWebAppJson(AppDatabase db, List<ImportFile> files) as
   return result;
 }
 
-Future<void> _importRecurringSeries(AppDatabase db, _Resolver resolver, List<Map> records, ImportResult result) async {
+/// A web app record whose date and amount have been checked.
+typedef _WebRecord = ({Map raw, String date, int cents});
+
+Future<void> _importRecurringSeries(
+  AppDatabase db,
+  _Resolver resolver,
+  List<_WebRecord> records,
+  ImportResult result,
+) async {
   final groups = groupBy(
-    records.where((r) => (r['recurring_id']?.toString() ?? '').isNotEmpty),
-    (Map r) => r['recurring_id'].toString(),
+    records.where((r) => (r.raw['recurring_id']?.toString() ?? '').isNotEmpty),
+    (_WebRecord r) => r.raw['recurring_id'].toString(),
   );
   final existing = {for (final s in await db.allRecurring()) s.id};
   for (final entry in groups.entries) {
     final id = _importId('webapp:recurring:${entry.key}');
     if (existing.contains(id)) continue;
-    final rows = entry.value.sortedBy((r) => r['date'].toString());
+    final rows = entry.value.sortedBy((r) => r.date);
     final first = rows.first;
     final frequency =
-        Frequency.values.firstWhereOrNull((f) => f.name == first['frequency']?.toString().toLowerCase()) ??
+        Frequency.values.firstWhereOrNull((f) => f.name == first.raw['frequency']?.toString().toLowerCase()) ??
         Frequency.monthly;
-    final category = await resolver.category(first['category']?.toString() ?? '', TxKind.expense);
-    final lastDate = rows.last['date'].toString().substring(0, 10);
+    final category = await resolver.category(first.raw['category']?.toString() ?? '', TxKind.expense);
+    final lastDate = rows.last.date;
     await db
         .into(db.recurringSeriesTable)
         .insert(
           RecurringSeriesTableCompanion.insert(
             id: Value(id),
             kind: TxKind.expense,
-            amountCents: centsFromNum(first['amount'] as num).abs(),
+            amountCents: first.cents,
             categoryId: category.id,
-            notes: Value(_nullIfBlank(first['notes']?.toString())),
+            notes: Value(_nullIfBlank(first.raw['notes']?.toString())),
             frequency: frequency,
-            startDate: first['date'].toString().substring(0, 10),
+            startDate: first.date,
             // The web app generated every occurrence up front, so the last
             // record is the series' end.
             endDate: Value(lastDate),
@@ -304,7 +319,7 @@ Future<ImportResult> importCsv(AppDatabase db, ImportFile file) async {
 
     for (var r = 1; r < rows.length; r++) {
       final row = rows[r];
-      final date = _parseCsvDate(cell(row, dateCol));
+      final date = _parseDate(cell(row, dateCol));
       final cents = parseCents(cell(row, amountCol));
       if (date == null || cents == null) {
         result.warnings.add('Row ${r + 1}: could not read date/amount');
@@ -347,19 +362,21 @@ Future<ImportResult> importCsv(AppDatabase db, ImportFile file) async {
   return result;
 }
 
-String? _parseCsvDate(String s) {
-  if (s.isEmpty) return null;
-  final iso = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(s);
-  if (iso != null) {
-    return ymd(DateTime(int.parse(iso[1]!), int.parse(iso[2]!), int.parse(iso[3]!)));
+/// Reads an imported `YYYY-MM-DD…` or `M/D/YY(YY)` date as `YYYY-MM-DD`, or
+/// null if it isn't a real calendar date. (`DateTime` alone would quietly
+/// turn Feb 30 into Mar 2, or month 13 into next January.)
+String? _parseDate(String s) {
+  final int year, month, day;
+  if (RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(s) case final iso?) {
+    (year, month, day) = (int.parse(iso[1]!), int.parse(iso[2]!), int.parse(iso[3]!));
+  } else if (RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{2,4})').firstMatch(s) case final us?) {
+    final y = int.parse(us[3]!);
+    (year, month, day) = (y < 100 ? y + 2000 : y, int.parse(us[1]!), int.parse(us[2]!));
+  } else {
+    return null;
   }
-  final us = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{2,4})').firstMatch(s);
-  if (us != null) {
-    var year = int.parse(us[3]!);
-    if (year < 100) year += 2000;
-    return ymd(DateTime(year, int.parse(us[1]!), int.parse(us[2]!)));
-  }
-  return null;
+  final date = DateTime(year, month, day);
+  return date.month == month && date.day == day ? ymd(date) : null;
 }
 
 String? _nullIfBlank(String? s) {

@@ -118,7 +118,34 @@ void main() {
     });
   });
 
+  test('web app JSON: malformed records are skipped with a warning and the rest import', () async {
+    final expenses = jsonEncode({
+      'records': [
+        {'id': 1, 'amount': 5, 'category': 'Grocery', 'date': '2026-01-05'},
+        {'id': 2, 'amount': 5, 'category': 'Grocery', 'date': '2026-13-45'},
+        {'id': 3, 'amount': 5, 'category': 'Rent', 'frequency': 'Monthly', 'recurring_id': 'r1'}, // no date
+        {'id': 4, 'amount': 'five', 'category': 'Rent', 'date': '2026-02-01', 'recurring_id': 'r1'},
+        {'id': 5, 'amount': 7, 'category': 'Rent', 'date': '2026-03-01', 'frequency': 'Monthly', 'recurring_id': 'r1'},
+      ],
+    });
+    final r = await importWebAppJson(db, [ImportFile('expenses.json', expenses)]);
+    expect(r.added, 2);
+    expect(r.warnings, [
+      for (final id in [2, 3, 4]) 'expenses.json: skipped malformed record $id',
+    ]);
+    expect((await db.transactionsBetween()).map((t) => t.date).toSet(), {'2026-01-05', '2026-03-01'});
+    expect((await db.allRecurring()).single.startDate, '2026-03-01');
+  });
+
   group('CSV', () {
+    test('impossible calendar dates are rejected, not rolled into the next month', () async {
+      const csv = 'Date,Amount,Type\n2026-02-30,5,Expense\n2/30/2026,5,Expense\n2026-02-28,5,Expense\n';
+      final r = await importCsv(db, ImportFile('bank.csv', csv));
+      expect(r.added, 1);
+      expect(r.warnings, ['Row 2: could not read date/amount', 'Row 3: could not read date/amount']);
+      expect((await db.transactionsBetween()).single.date, '2026-02-28');
+    });
+
     test('export has the expected columns, oldest first', () async {
       await addTxn(db, category: 'Grocery', cents: 1250, date: '2026-01-05', merchant: 'Costco', notes: 'Milk, eggs');
       await addTxn(db, category: 'Paycheck', cents: 400000, date: '2026-01-02');
