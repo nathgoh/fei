@@ -69,6 +69,7 @@ lib/
   domain/      pure analytics: period summaries (including the cash-flow chart axis), recurring outlook
   state/       Riverpod providers
   ui/          screens, charts, theme
+server/schema.sql   PostgreSQL schema for the planned home-server sync
 tool/demo_main.dart   sample-data entrypoint
 web/sqlite3.wasm, web/drift_worker.js   Drift's web runtime
 ```
