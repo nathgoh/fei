@@ -12,6 +12,8 @@ const expenseOrange = Color(0xFFFF8A65);
 const _incomeGreenLight = Color(0xFF2E7D32);
 const _negativeRedLight = Color(0xFFC62828);
 const _expenseOrangeLight = Color(0xFFE64A19);
+const _savingsBlue = Color(0xFF64B5F6);
+const _savingsBlueLight = Color(0xFF1976D2);
 
 /// Accent presets offered in Settings → Appearance.
 const accentPresets = <String, Color>{
@@ -131,4 +133,5 @@ extension ThemeX on BuildContext {
   Color get incomeColor => _isLight ? _incomeGreenLight : incomeGreen;
   Color get negativeColor => _isLight ? _negativeRedLight : negativeRed;
   Color get expenseColor => _isLight ? _expenseOrangeLight : expenseOrange;
+  Color get savingsColor => _isLight ? _savingsBlueLight : _savingsBlue;
 }

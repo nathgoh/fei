@@ -12,7 +12,7 @@ server later.
 | --- | --- |
 | **Dashboard** | Month at a glance: income / expenses / saved, flexible spending vs. last month, top categories, upcoming recurring, recent transactions |
 | **Transactions** | Search and filter by month, type and category; grouped by day; swipe to delete (with undo) |
-| **Cash Flow** | Year view: totals, savings rate, averages (with and without fixed costs), income → expenses → categories Sankey, monthly income vs. expense chart, per-category monthly averages, monthly breakdown. Tap a month or category to drill into its transactions. CSV export. |
+| **Cash Flow** | Year view: totals, savings rate, averages (with and without fixed costs), income → expenses → categories waterfall, monthly income vs. expense chart, per-category monthly averages, monthly breakdown. Tap a month or category to drill into its transactions. CSV export. |
 | **Recurring** | Recurring expenses/income with next dates, 30-day outlook and monthly cost; edit (future-only or including past), end today, or delete |
 
 **Settings:** appearance (accent color, background), categories (groups,
@@ -66,7 +66,7 @@ bank exports.
 lib/
   core/        dates (recurrence maths) and money (integer cents) helpers
   data/        Drift schema (tables.dart), database + queries, seed, import/export
-  domain/      pure analytics: period summaries, Sankey data, recurring outlook
+  domain/      pure analytics: period summaries, cash-flow waterfall, recurring outlook
   state/       Riverpod providers
   ui/          screens, charts, theme
 tool/demo_main.dart   sample-data entrypoint
@@ -113,7 +113,7 @@ The tests mirror `lib/`:
 | --- | --- |
 | `test/core` | dates and recurrence maths, money parsing and formatting |
 | `test/data` | database queries (categories, transactions, soft deletes, recurring generation and edits), JSON/CSV import and export |
-| `test/domain` | period summaries, cumulative spending, recurring outlook, the Sankey builder |
+| `test/domain` | period summaries, cumulative spending, recurring outlook, the waterfall builder |
 | `test/state` | appearance settings persistence |
 | `test/ui` | theme, plus widget tests that drive each screen on a phone-sized window |
 | `test/drift` | schema migrations, against the snapshots in `drift_schemas/` |

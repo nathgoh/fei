@@ -12,7 +12,7 @@ import '../../data/import_export.dart';
 import '../../domain/analytics.dart';
 import '../../state/providers.dart';
 import '../charts/charts.dart';
-import '../charts/sankey_chart.dart';
+import '../charts/waterfall_chart.dart';
 import '../theme.dart';
 import '../transactions/transactions_screen.dart';
 import '../widgets.dart';
@@ -129,7 +129,7 @@ class CashFlowScreen extends ConsumerWidget {
               ),
               SectionCard(
                 title: 'Financial flow',
-                child: SankeyChart(summary: s),
+                child: CashFlowWaterfallChart(summary: s),
               ),
               SectionCard(
                 title: 'Income vs. expenses',

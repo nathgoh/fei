@@ -23,7 +23,7 @@ class _Destination {
 const _destinations = [
   _Destination('Dashboard', Icons.space_dashboard_outlined, Icons.space_dashboard),
   _Destination('Transactions', Icons.receipt_long_outlined, Icons.receipt_long),
-  _Destination('Cash Flow', Icons.insights_outlined, Icons.insights),
+  _Destination('Cash Flow', Icons.analytics_outlined, Icons.analytics),
   _Destination('Recurring', Icons.event_repeat_outlined, Icons.event_repeat),
 ];
 
