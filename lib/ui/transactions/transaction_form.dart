@@ -142,7 +142,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   Future<void> _pickDate({required bool end}) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: end ? (_endDate ?? _date.add(const Duration(days: 365))) : _date,
+      initialDate: end ? (_endDate ?? addDays(_date, 365)) : _date,
       firstDate: end ? _date : DateTime(2000),
       lastDate: DateTime(today().year + 10),
     );

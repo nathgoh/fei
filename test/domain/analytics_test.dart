@@ -105,6 +105,17 @@ void main() {
   });
 
   group('recurring outlook', () {
+    // Only a time zone with daylight saving can catch a regression here; the
+    // dates are US clock changes (spring forward Mar 8, fall back Nov 1, 2026).
+    test('the outlook counts calendar days across daylight saving changes', () async {
+      await addSeries(db, category: 'Grocery', cents: 1000, start: '2026-03-02', frequency: Frequency.weekly);
+      final series = await db.allRecurring();
+      List<int> days(DateTime asOf) => [for (final o in upcomingOccurrences(series, days: 14, asOf: asOf)) o.date.day];
+      expect(days(DateTime(2026, 3, 8)), [9, 16]);
+      expect(days(DateTime(2026, 10, 26)), [2, 9]); // window Oct 27 – Nov 9
+      expect(nextOccurrence(series.single, asOf: DateTime(2026, 3, 8)), DateTime(2026, 3, 9));
+    });
+
     test('upcomingOccurrences are after today, within the window, sorted', () async {
       await addSeries(db, category: 'Entertainment', cents: 1200, start: '2026-01-05', frequency: Frequency.weekly);
       await addSeries(db, category: 'Utility', cents: 6500, start: '2026-01-03');

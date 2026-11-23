@@ -109,7 +109,7 @@ void main() {
       },
     );
     await scrollTo(tester, find.text('Gym').first);
-    expect(find.text(formatDateShort(now.add(const Duration(days: 7)))), findsOneWidget);
+    expect(find.text(formatDateShort(addDays(now, 7))), findsOneWidget);
     await unmount(tester);
   });
 }

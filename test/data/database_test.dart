@@ -210,7 +210,7 @@ void main() {
         categoryId: grocery.id,
         merchant: 'Farm box',
         frequency: Frequency.weekly,
-        startDate: ymd(today().subtract(const Duration(days: 14))),
+        startDate: ymd(addDays(today(), -14)),
       );
       final txns = await db.transactionsBetween();
       expect(txns, hasLength(3)); // 14 and 7 days ago, and today
@@ -249,7 +249,7 @@ void main() {
     });
 
     test('stopSeries ends today and keeps past occurrences', () async {
-      final start = today().subtract(const Duration(days: 21));
+      final start = addDays(today(), -21);
       await addSeries(db, category: 'Health', cents: 4500, start: ymd(start), frequency: Frequency.weekly);
       await db.materializeRecurring();
       final before = await db.transactionsBetween();
@@ -269,6 +269,18 @@ void main() {
       expect((await db.transactionsBetween()).map((t) => t.amountCents).toSet(), {1});
       // A deleted series is never generated again.
       expect(await db.materializeRecurring(asOf: DateTime(2026, 12, 1)), 0);
+    });
+
+    // Only a time zone with daylight saving can catch a regression here; the
+    // dates are US clock changes (spring forward Mar 8, fall back Nov 1, 2026).
+    test('generation steps calendar days across daylight saving changes', () async {
+      await addSeries(db, category: 'Grocery', cents: 1000, start: '2026-03-02', frequency: Frequency.weekly);
+      for (final asOf in [DateTime(2026, 3, 8), DateTime(2026, 3, 16), DateTime(2026, 11, 1), DateTime(2026, 11, 9)]) {
+        await db.materializeRecurring(asOf: asOf);
+      }
+      final dates = [for (final t in await db.transactionsBetween()) t.date];
+      expect(dates, contains('2026-03-09'));
+      expect(dates, hasLength(37)); // every Monday from Mar 2 to Nov 9
     });
   });
 

@@ -20,6 +20,10 @@ DateTime today() {
 
 String todayYmd() => ymd(today());
 
+/// [d] moved by [days] calendar days, at midnight. Adding a `Duration` steps
+/// 24 hours instead, which lands an hour off across a daylight-saving change.
+DateTime addDays(DateTime d, int days) => DateTime(d.year, d.month, d.day + days);
+
 /// `YYYY-MM` prefix for a month, used for lexical range filtering.
 String monthKey(int year, int month) => '$year-${_two(month)}';
 
@@ -44,9 +48,9 @@ String formatMonthYear(int year, int month) => DateFormat('MMMM y').format(DateT
 DateTime nthOccurrence(DateTime start, Frequency f, int n) {
   switch (f) {
     case Frequency.weekly:
-      return DateTime(start.year, start.month, start.day + 7 * n);
+      return addDays(start, 7 * n);
     case Frequency.biweekly:
-      return DateTime(start.year, start.month, start.day + 14 * n);
+      return addDays(start, 14 * n);
     case Frequency.monthly:
       return _addMonthsClamped(start, n);
     case Frequency.quarterly:

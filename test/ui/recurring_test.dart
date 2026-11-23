@@ -23,8 +23,8 @@ void main() {
       db,
       category: 'Entertainment',
       cents: 1599,
-      start: ymd(now.subtract(const Duration(days: 90))),
-      end: ymd(now.subtract(const Duration(days: 30))),
+      start: ymd(addDays(now, -90)),
+      end: ymd(addDays(now, -30)),
       merchant: 'Old streaming',
     );
     await db.materializeRecurring();
@@ -37,7 +37,7 @@ void main() {
     expect(find.text(formatMoney(19500)), findsOneWidget); // $45 weekly ≈ $195 a month
     expect(find.text('per month, 1 active'), findsOneWidget);
     expect(find.text('Gym'), findsWidgets);
-    expect(find.text('Weekly · Next ${formatDateShort(now.add(const Duration(days: 7)))}'), findsOneWidget);
+    expect(find.text('Weekly · Next ${formatDateShort(addDays(now, 7))}'), findsOneWidget);
 
     await scrollTo(tester, find.text('Ended (1)'));
     await tester.tap(find.text('Ended (1)'));

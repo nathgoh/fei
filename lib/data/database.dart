@@ -318,7 +318,7 @@ class AppDatabase extends _$AppDatabase {
     var created = 0;
     for (final s in await q.get()) {
       final start = parseYmd(s.startDate);
-      final from = s.generatedThrough == null ? start : parseYmd(s.generatedThrough!).add(const Duration(days: 1));
+      final from = s.generatedThrough == null ? start : addDays(parseYmd(s.generatedThrough!), 1);
       final end = s.endDate == null ? null : parseYmd(s.endDate!);
       final upTo = end != null && end.isBefore(limit) ? end : limit;
       if (upTo.isBefore(from)) continue;

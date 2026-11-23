@@ -29,7 +29,7 @@ Future<void> _seed(AppDatabase db) async {
     categoryId: cats['Paycheck']!,
     merchant: 'Acme Corp',
     frequency: Frequency.biweekly,
-    startDate: ymd(start.add(const Duration(days: 4))),
+    startDate: ymd(addDays(start, 4)),
   );
   await db.createSeries(
     kind: TxKind.expense,
@@ -45,7 +45,7 @@ Future<void> _seed(AppDatabase db) async {
     categoryId: cats['Entertainment']!,
     merchant: 'Netflix',
     frequency: Frequency.monthly,
-    startDate: ymd(start.add(const Duration(days: 11))),
+    startDate: ymd(addDays(start, 11)),
   );
   await db.createSeries(
     kind: TxKind.expense,
@@ -53,7 +53,7 @@ Future<void> _seed(AppDatabase db) async {
     categoryId: cats['Utility']!,
     merchant: 'PG&E',
     frequency: Frequency.monthly,
-    startDate: ymd(start.add(const Duration(days: 19))),
+    startDate: ymd(addDays(start, 19)),
   );
   await db.createSeries(
     kind: TxKind.expense,
@@ -61,12 +61,17 @@ Future<void> _seed(AppDatabase db) async {
     categoryId: cats['Health']!,
     merchant: 'Gym',
     frequency: Frequency.monthly,
-    startDate: ymd(start.add(const Duration(days: 2))),
+    startDate: ymd(addDays(start, 2)),
   );
 
   final spend = <String, ({List<String> merchants, int min, int max, int perMonth})>{
     'Grocery': (merchants: ['Costco', 'Safeway', "Trader Joe's"], min: 2500, max: 16000, perMonth: 6),
-    'Food & Dining': (merchants: ['Chipotle', 'Sushi Ran', 'Blue Bottle', 'Pizzeria'], min: 600, max: 9000, perMonth: 9),
+    'Food & Dining': (
+      merchants: ['Chipotle', 'Sushi Ran', 'Blue Bottle', 'Pizzeria'],
+      min: 600,
+      max: 9000,
+      perMonth: 9,
+    ),
     'Transportation': (merchants: ['Shell', 'Uber', 'Clipper'], min: 300, max: 6500, perMonth: 4),
     'Personal': (merchants: ['Uniqlo', 'Haircut', 'Amazon'], min: 1500, max: 12000, perMonth: 2),
     'Home': (merchants: ['IKEA', 'Target', 'Home Depot'], min: 1200, max: 18000, perMonth: 1),

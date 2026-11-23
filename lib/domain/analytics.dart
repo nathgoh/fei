@@ -166,8 +166,8 @@ bool isSeriesActive(RecurringSeries s, [DateTime? asOf]) {
 
 /// Occurrences due after today, within [days] days.
 List<UpcomingOccurrence> upcomingOccurrences(List<RecurringSeries> series, {int days = 30, DateTime? asOf}) {
-  final from = (asOf ?? today()).add(const Duration(days: 1));
-  final to = from.add(Duration(days: days - 1));
+  final from = addDays(asOf ?? today(), 1);
+  final to = addDays(from, days - 1);
   final result = <UpcomingOccurrence>[];
   for (final s in series) {
     final end = s.endDate == null ? null : parseYmd(s.endDate!);
@@ -180,7 +180,7 @@ List<UpcomingOccurrence> upcomingOccurrences(List<RecurringSeries> series, {int 
 }
 
 DateTime? nextOccurrence(RecurringSeries s, {DateTime? asOf}) {
-  final from = (asOf ?? today()).add(const Duration(days: 1));
+  final from = addDays(asOf ?? today(), 1);
   final end = s.endDate == null ? null : parseYmd(s.endDate!);
   final start = parseYmd(s.startDate);
   for (var n = 0; n < 100000; n++) {
