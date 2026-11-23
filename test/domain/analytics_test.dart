@@ -136,4 +136,36 @@ void main() {
       expect(monthlyEquivalent(yearly), 10000);
     });
   });
+
+  group('cash flow chart axis', () {
+    test('income sets the axis and savings fill from the left', () async {
+      await addTxn(db, category: 'Paycheck', cents: 300000, date: '2026-01-15');
+      await addTxn(db, category: 'Interest', cents: 1000, date: '2026-01-15');
+      await addTxn(db, category: 'Grocery', cents: 30000, date: '2026-01-05');
+      await addTxn(db, category: 'Rent', cents: 20000, date: '2026-01-01');
+      final s = await summary();
+      expect(s.flowTotal, 301000);
+      expect(s.savingsSpan, (start: 0, end: 251000));
+      expect(s.spentShare, closeTo(16.6, 0.1));
+    });
+
+    test('overspending makes savings span the overspend', () async {
+      await addTxn(db, category: 'Paycheck', cents: 1000, date: '2026-01-15');
+      await addTxn(db, category: 'Grocery', cents: 1500, date: '2026-01-05');
+      final s = await summary();
+      expect(s.flowTotal, 1500);
+      expect(s.savingsSpan, (start: 1000, end: 1500));
+      expect(s.spentShare, closeTo(150, 0.01));
+    });
+
+    test('without income there is no spent share', () async {
+      await addTxn(db, category: 'Grocery', cents: 1500, date: '2026-01-05');
+      expect((await summary()).spentShare, isNull);
+    });
+
+    test('without expenses savings are all of income', () async {
+      await addTxn(db, category: 'Paycheck', cents: 1000, date: '2026-01-15');
+      expect((await summary()).savingsSpan, (start: 0, end: 1000));
+    });
+  });
 }

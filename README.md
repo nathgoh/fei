@@ -66,7 +66,7 @@ bank exports.
 lib/
   core/        dates (recurrence maths) and money (integer cents) helpers
   data/        Drift schema (tables.dart), database + queries, seed, import/export
-  domain/      pure analytics: period summaries, cash-flow waterfall, recurring outlook
+  domain/      pure analytics: period summaries (including the cash-flow chart axis), recurring outlook
   state/       Riverpod providers
   ui/          screens, charts, theme
 tool/demo_main.dart   sample-data entrypoint
@@ -113,7 +113,7 @@ The tests mirror `lib/`:
 | --- | --- |
 | `test/core` | dates and recurrence maths, money parsing and formatting |
 | `test/data` | database queries (categories, transactions, soft deletes, recurring generation and edits), JSON/CSV import and export |
-| `test/domain` | period summaries, cumulative spending, recurring outlook, the waterfall builder |
+| `test/domain` | period summaries and the cash-flow chart axis, cumulative spending, recurring outlook |
 | `test/state` | appearance settings persistence |
 | `test/ui` | theme, plus widget tests that drive each screen on a phone-sized window |
 | `test/drift` | schema migrations, against the snapshots in `drift_schemas/` |

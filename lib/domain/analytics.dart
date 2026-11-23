@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:collection/collection.dart';
 
 import '../core/dates.dart';
@@ -51,7 +53,19 @@ class PeriodSummary {
   int get flexibleCents => expenseCents - fixedCents;
   int get savingsCents => incomeCents - expenseCents;
   double? get savingsRate => incomeCents > 0 ? savingsCents / incomeCents * 100 : null;
+
+  /// Expenses as a percentage of income; null without income.
+  double? get spentShare => incomeCents > 0 ? expenseCents / incomeCents * 100 : null;
   bool get isEmpty => transactionCount == 0;
+
+  /// The cash-flow chart's shared axis for income and savings, in cents:
+  /// income, or spending when it exceeds income.
+  int get flowTotal => math.max(incomeCents, expenseCents);
+
+  /// Savings on that axis: what's left, from the left, or when spending
+  /// exceeds income, the overspend beyond the income bar.
+  ({int start, int end}) get savingsSpan =>
+      savingsCents >= 0 ? (start: 0, end: savingsCents) : (start: incomeCents, end: expenseCents);
 
   List<MonthTotals> get activeMonths => months.where((m) => m.hasData).toList();
 

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
 import '../../domain/analytics.dart';
-import '../../domain/waterfall.dart';
 import '../theme.dart';
 import '../widgets.dart';
+
+/// A bar's extent on a chart axis, in cents.
+typedef _Span = ({int start, int end});
 
 /// Vertical money flow for a period: income, then expenses, then what's left.
 ///
@@ -27,28 +29,28 @@ class _CashFlowWaterfallChartState extends State<CashFlowWaterfallChart> {
 
   @override
   Widget build(BuildContext context) {
-    final w = CashFlowWaterfall.of(widget.summary);
-    if (w.isEmpty) return const SizedBox.shrink();
+    final s = widget.summary;
+    final hasIncome = s.incomeCents > 0, hasExpenses = s.expenseCents > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (w.hasIncome)
+        if (hasIncome)
           _FlowGroup(
             key: const ValueKey('flow-income'),
             icon: Icons.account_balance_wallet_outlined,
             title: 'Income',
-            cents: w.incomeCents,
+            cents: s.incomeCents,
             amountColor: context.incomeColor,
-            caption: w.sources.length > 1 ? '${w.sources.length} sources' : null,
-            span: w.income,
-            total: w.total,
-            parts: w.sources,
+            caption: s.incomeByCategory.length > 1 ? '${s.incomeByCategory.length} sources' : null,
+            span: (start: 0, end: s.incomeCents),
+            total: s.flowTotal,
+            parts: s.incomeByCategory,
             partsTitle: 'Income sources',
             open: _incomeOpen,
             onToggle: () => setState(() => _incomeOpen = !_incomeOpen),
           ),
-        if (w.hasIncome && w.hasExpenses)
+        if (hasIncome && hasExpenses)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
@@ -56,21 +58,21 @@ class _CashFlowWaterfallChartState extends State<CashFlowWaterfallChart> {
               children: [Icon(Icons.arrow_downward, size: 14, color: context.colors.onSurfaceVariant)],
             ),
           ),
-        if (w.hasExpenses)
+        if (hasExpenses)
           _FlowGroup(
             key: const ValueKey('flow-expenses'),
             icon: Icons.receipt_long_outlined,
             title: 'Expenses',
-            cents: w.expenseCents,
-            caption: w.spentShare == null ? null : '${formatPercent(w.spentShare!)} of income',
-            span: (start: 0, end: w.expenseCents),
-            total: w.expenseCents,
-            parts: w.categories,
+            cents: s.expenseCents,
+            caption: s.spentShare == null ? null : '${formatPercent(s.spentShare!)} of income',
+            span: (start: 0, end: s.expenseCents),
+            total: s.expenseCents,
+            parts: s.expenseByCategory,
             partsTitle: 'Expense categories',
             open: _expensesOpen,
             onToggle: () => setState(() => _expensesOpen = !_expensesOpen),
           ),
-        if (w.hasIncome) ...[const SizedBox(height: 16), _SavingsRow(waterfall: w)],
+        if (hasIncome) ...[const SizedBox(height: 16), _SavingsRow(summary: s)],
       ],
     );
   }
@@ -98,7 +100,7 @@ class _FlowGroup extends StatelessWidget {
   final int cents;
   final String? caption;
   final Color? amountColor;
-  final Span span;
+  final _Span span;
   final int total;
   final List<CategoryTotal> parts;
   final String partsTitle;
@@ -256,13 +258,14 @@ class _PartRow extends StatelessWidget {
 /// What's left after expenses: blue and positive, or red and negative when
 /// spending exceeds income.
 class _SavingsRow extends StatelessWidget {
-  const _SavingsRow({required this.waterfall});
-  final CashFlowWaterfall waterfall;
+  const _SavingsRow({required this.summary});
+  final PeriodSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    final w = waterfall;
-    final color = w.isDeficit ? context.negativeColor : context.savingsColor;
+    final s = summary;
+    final deficit = s.savingsCents < 0;
+    final color = deficit ? context.negativeColor : context.savingsColor;
     final muted = context.colors.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -271,17 +274,17 @@ class _SavingsRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(w.isDeficit ? Icons.trending_down : Icons.savings_outlined, size: 18, color: color),
+              Icon(deficit ? Icons.trending_down : Icons.savings_outlined, size: 18, color: color),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('Savings', style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               ),
-              if (w.savingsRate != null) ...[
-                Text(formatPercent(w.savingsRate!), style: context.text.bodySmall?.copyWith(color: muted)),
+              if (s.savingsRate != null) ...[
+                Text(formatPercent(s.savingsRate!), style: context.text.bodySmall?.copyWith(color: muted)),
                 const SizedBox(width: 10),
               ],
               Text(
-                formatMoney(w.savingsCents),
+                formatMoney(s.savingsCents),
                 style: context.text.titleMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
@@ -290,9 +293,9 @@ class _SavingsRow extends StatelessWidget {
               ),
             ],
           ),
-          if (w.savingsCents != 0) ...[
+          if (s.savingsCents != 0) ...[
             const SizedBox(height: 8),
-            _AxisBar(span: w.savings, total: w.total, height: 12, segments: [(cents: 1, color: color)]),
+            _AxisBar(span: s.savingsSpan, total: s.flowTotal, height: 12, segments: [(cents: 1, color: color)]),
           ],
         ],
       ),
@@ -306,7 +309,7 @@ typedef _Segment = ({int cents, Color color});
 /// [segments] in proportion to their cents.
 class _AxisBar extends StatelessWidget {
   const _AxisBar({required this.span, required this.total, required this.segments, required this.height});
-  final Span span;
+  final _Span span;
   final int total;
   final List<_Segment> segments;
   final double height;
@@ -330,7 +333,7 @@ class _AxisBar extends StatelessWidget {
 
 class _AxisBarPainter extends CustomPainter {
   _AxisBarPainter({required this.span, required this.total, required this.segments, required this.track});
-  final Span span;
+  final _Span span;
   final int total;
   final List<_Segment> segments;
   final Color track;
