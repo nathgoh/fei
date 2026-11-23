@@ -118,5 +118,26 @@ void main() {
       expect(names, isNot(contains('Travel')));
       await unmount(tester);
     });
+
+    testWidgets('deleting a category used only by a future recurring series asks where to move it', (tester) async {
+      final (db, _) = await pumpFei(
+        tester,
+        seed: (db) => addSeries(db, category: 'Travel', cents: 200, start: '2099-01-01'),
+      );
+      await openSettingsPage(tester, 'Categories');
+      await scrollTo(tester, find.text('Travel'));
+      await tester.tap(find.text('Travel'));
+      await settle(tester);
+      await tester.tap(find.text('Delete'));
+      await settle(tester);
+
+      expect(find.text('Move 1 recurring series to…'), findsOneWidget);
+      await tester.tap(find.text('Miscellaneous').last);
+      await settle(tester);
+      final misc = await dbRun(tester, () => categoryNamed(db, 'Miscellaneous'));
+      expect((await dbRun(tester, db.allRecurring)).single.categoryId, misc.id);
+      expect((await dbRun(tester, db.allCategories)).map((c) => c.name), isNot(contains('Travel')));
+      await unmount(tester);
+    });
   });
 }

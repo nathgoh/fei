@@ -265,10 +265,10 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
   Future<void> _delete() async {
     final db = ref.read(databaseProvider);
     final c = widget.category!;
-    final inUse = await db.countTransactionsForCategory(c.id);
+    final usage = await db.categoryUsage(c.id);
     if (!mounted) return;
-    if (inUse == 0) {
-      if (await confirm(context, title: 'Delete ${c.name}?', message: 'This category has no transactions.')) {
+    if (usage.transactions == 0 && usage.series == 0) {
+      if (await confirm(context, title: 'Delete ${c.name}?', message: 'No transactions or recurring series use it.')) {
         await db.deleteCategory(c.id);
         if (mounted) Navigator.pop(context);
       }
@@ -281,10 +281,14 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       showMessage(context, 'Cannot delete the last ${c.kind.name} category');
       return;
     }
+    final inUse = [
+      if (usage.transactions > 0) '${usage.transactions} transaction${usage.transactions == 1 ? '' : 's'}',
+      if (usage.series > 0) '${usage.series} recurring series',
+    ].join(' and ');
     final target = await showDialog<Category>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: Text('Move $inUse transaction${inUse == 1 ? '' : 's'} to…'),
+        title: Text('Move $inUse to…'),
         children: [
           for (final o in others)
             SimpleDialogOption(

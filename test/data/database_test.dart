@@ -67,12 +67,20 @@ void main() {
       await addSeries(db, category: 'Travel', cents: 200, start: '2026-01-01', end: '2026-01-01');
       final travel = await categoryNamed(db, 'Travel');
       final misc = await categoryNamed(db, 'Miscellaneous');
-      expect(await db.countTransactionsForCategory(travel.id), 1);
+      expect(await db.categoryUsage(travel.id), (transactions: 1, series: 1));
 
       await db.deleteCategory(travel.id, reassignTo: misc.id);
       expect((await db.allCategories()).map((c) => c.name), isNot(contains('Travel')));
       expect((await db.transactionsBetween()).single.categoryId, misc.id);
       expect((await db.allRecurring()).single.categoryId, misc.id);
+    });
+
+    test('a category used only by a future recurring series cannot be deleted without moving it', () async {
+      await addSeries(db, category: 'Travel', cents: 200, start: '2027-01-01');
+      final travel = await categoryNamed(db, 'Travel');
+      expect(await db.categoryUsage(travel.id), (transactions: 0, series: 1));
+      await expectLater(db.deleteCategory(travel.id), throwsStateError);
+      expect((await db.allCategories()).map((c) => c.name), contains('Travel'));
     });
 
     test('watchCategories emits changes', () async {

@@ -116,20 +116,32 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateCategory(String id, CategoriesCompanion changes) =>
       (update(categories)..where((c) => c.id.equals(id))).write(changes.copyWith(updatedAt: Value(_now)));
 
-  Future<int> countTransactionsForCategory(String id) async {
-    final count = transactions.id.count();
-    final row =
+  /// How many transactions and recurring series use a category. A series
+  /// counts even before it has generated anything.
+  Future<({int transactions, int series})> categoryUsage(String id) async {
+    final txnCount = transactions.id.count();
+    final seriesCount = recurringSeriesTable.id.count();
+    final txns =
         await (selectOnly(transactions)
-              ..addColumns([count])
+              ..addColumns([txnCount])
               ..where(transactions.categoryId.equals(id) & transactions.deletedAt.isNull()))
             .getSingle();
-    return row.read(count) ?? 0;
+    final series =
+        await (selectOnly(recurringSeriesTable)
+              ..addColumns([seriesCount])
+              ..where(recurringSeriesTable.categoryId.equals(id) & recurringSeriesTable.deletedAt.isNull()))
+            .getSingle();
+    return (transactions: txns.read(txnCount) ?? 0, series: series.read(seriesCount) ?? 0);
   }
 
   /// Soft-deletes a category, first moving its transactions and recurring
-  /// series to [reassignTo] (required when the category is in use).
+  /// series to [reassignTo]. Throws a [StateError] if the category is in use
+  /// and [reassignTo] is null, since its charges would lose their category.
   Future<void> deleteCategory(String id, {String? reassignTo}) => transaction(() async {
-    if (reassignTo != null) {
+    if (reassignTo == null) {
+      final usage = await categoryUsage(id);
+      if (usage.transactions > 0 || usage.series > 0) throw StateError('Category $id is still in use');
+    } else {
       await (update(transactions)..where((t) => t.categoryId.equals(id))).write(
         TransactionsCompanion(categoryId: Value(reassignTo), updatedAt: Value(_now)),
       );
