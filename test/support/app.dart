@@ -63,16 +63,9 @@ Future<void> unmount(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 1));
 }
 
-const tabIcons = {
-  'Dashboard': Icons.space_dashboard_outlined,
-  'Transactions': Icons.receipt_long_outlined,
-  'Cash Flow': Icons.insights_outlined,
-  'Recurring': Icons.event_repeat_outlined,
-};
-
 /// Switches tabs via the bottom bar (the destination must not be the current tab).
 Future<void> openTab(WidgetTester tester, String tab) async {
-  await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.byIcon(tabIcons[tab]!)));
+  await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.byTooltip(tab)));
   await settle(tester);
 }
 

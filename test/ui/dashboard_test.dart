@@ -42,18 +42,18 @@ void main() {
     await pumpFei(tester);
     final current = formatMonthYear(now.year, now.month);
     expect(find.text(current), findsOneWidget);
-    expect(find.text('Back to $current'), findsNothing);
+    expect(find.text('Present'), findsNothing);
 
     await tester.tap(find.byTooltip('Previous'));
     await tester.tap(find.byTooltip('Previous'));
     await settle(tester);
     expect(find.text(formatMonthYear(twoBack.year, twoBack.month)), findsOneWidget);
-    expect(find.text('Back to $current'), findsOneWidget);
+    expect(find.text('Present'), findsOneWidget);
 
-    await tester.tap(find.text('Back to $current'));
+    await tester.tap(find.text('Present'));
     await settle(tester);
     expect(find.text(current), findsOneWidget);
-    expect(find.text('Back to $current'), findsNothing);
+    expect(find.text('Present'), findsNothing);
     await unmount(tester);
   });
 
