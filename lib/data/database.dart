@@ -207,6 +207,25 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// Merchants (or, for income, sources) already used for [kind], for
+  /// autocomplete. With [categoryId], only that category's. Most used first,
+  /// then most recently used. Recurring series count as one use each, dated
+  /// by their start, so a series that hasn't run yet is still suggested.
+  Stream<List<String>> watchMerchants({required TxKind kind, String? categoryId}) {
+    const filter = 'deleted_at IS NULL AND kind = ?1 AND (?2 IS NULL OR category_id = ?2)';
+    return customSelect(
+      'SELECT merchant, COUNT(*) AS uses, MAX(day) AS last_used FROM ('
+      '  SELECT TRIM(merchant) AS merchant, date AS day FROM transactions WHERE $filter'
+      '  UNION ALL'
+      '  SELECT TRIM(merchant), start_date FROM recurring_series WHERE $filter'
+      ") WHERE merchant IS NOT NULL AND merchant <> ''"
+      ' GROUP BY merchant'
+      ' ORDER BY uses DESC, last_used DESC, merchant',
+      variables: [Variable.withString(kind.name), Variable<String>(categoryId)],
+      readsFrom: {transactions, recurringSeriesTable},
+    ).map((row) => row.read<String>('merchant')).watch();
+  }
+
   Future<void> deleteTransactions(Iterable<String> ids) => (update(
     transactions,
   )..where((t) => t.id.isIn(ids))).write(TransactionsCompanion(deletedAt: Value(_now), updatedAt: Value(_now)));

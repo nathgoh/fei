@@ -33,6 +33,13 @@ final transactionsProvider = StreamProvider.family<List<Txn>, ({String? from, St
   (ref, range) => ref.watch(databaseProvider).watchTransactions(from: range.from, to: range.to),
 );
 
+/// Merchants (or income sources) used before, most used first, for the
+/// merchant field's suggestions. A null category means every category.
+final merchantSuggestionsProvider = StreamProvider.autoDispose
+    .family<List<String>, ({TxKind kind, String? categoryId})>(
+      (ref, arg) => ref.watch(databaseProvider).watchMerchants(kind: arg.kind, categoryId: arg.categoryId),
+    );
+
 ({String from, String to}) yearRange(int year) => (from: '$year-01-01', to: '$year-12-31');
 
 ({String from, String to}) monthRange(int year, int month) =>

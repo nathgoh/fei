@@ -152,6 +152,80 @@ void main() {
     });
   });
 
+  group('merchant suggestions', () {
+    Future<void> seed() async {
+      // Costco: 3 uses, the oldest. Safeway and Trader Joe's: 2 each, Trader Joe's more recent.
+      for (final d in ['2026-01-01', '2026-01-02', '2026-01-03']) {
+        await addTxn(db, category: 'Grocery', cents: 100, date: d, merchant: 'Costco');
+      }
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-02-01', merchant: 'Safeway');
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-02-02', merchant: 'Safeway');
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-03-01', merchant: "Trader Joe's");
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-03-02', merchant: "Trader Joe's");
+      await addTxn(db, category: 'Food & Dining', cents: 100, date: '2026-03-05', merchant: 'Chipotle');
+      await addTxn(db, category: 'Paycheck', cents: 100, date: '2026-03-01', merchant: 'Acme Corp');
+      // No merchant, or a blank one that bypassed saveTransaction's trimming.
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-03-03');
+      final grocery = await categoryNamed(db, 'Grocery');
+      await db
+          .into(db.transactions)
+          .insert(
+            TransactionsCompanion.insert(
+              kind: TxKind.expense,
+              amountCents: 100,
+              date: '2026-03-04',
+              categoryId: grocery.id,
+              merchant: const Value('   '),
+            ),
+          );
+    }
+
+    test('ranks by use count, then most recent, and skips blanks', () async {
+      await seed();
+      final grocery = await categoryNamed(db, 'Grocery');
+      expect(await db.watchMerchants(kind: TxKind.expense, categoryId: grocery.id).first, [
+        'Costco',
+        "Trader Joe's",
+        'Safeway',
+      ]);
+    });
+
+    test('without a category, lists every merchant of that kind', () async {
+      await seed();
+      expect(await db.watchMerchants(kind: TxKind.expense).first, ['Costco', "Trader Joe's", 'Safeway', 'Chipotle']);
+      expect(await db.watchMerchants(kind: TxKind.income).first, ['Acme Corp']);
+    });
+
+    test('skips deleted transactions and includes recurring series', () async {
+      await seed();
+      final costco = (await db.transactionsBetween()).where((t) => t.merchant == 'Costco').map((t) => t.id);
+      await db.deleteTransactions(costco);
+      await addSeries(db, category: 'Rent', cents: 200000, start: '2026-04-01', merchant: 'Landlord');
+      await addSeries(db, category: 'Health', cents: 4500, start: '2026-04-01', merchant: 'Old gym');
+      final oldGym = (await db.allRecurring()).firstWhere((s) => s.merchant == 'Old gym');
+      await db.deleteSeries(oldGym.id, deleteTransactions: true);
+
+      final all = await db.watchMerchants(kind: TxKind.expense).first;
+      expect(all, isNot(contains('Costco')));
+      expect(all, isNot(contains('Old gym')));
+      final rent = await categoryNamed(db, 'Rent');
+      expect(await db.watchMerchants(kind: TxKind.expense, categoryId: rent.id).first, ['Landlord']);
+    });
+
+    test('emits again when a new merchant is saved', () async {
+      final stream = db.watchMerchants(kind: TxKind.expense);
+      final done = expectLater(
+        stream,
+        emitsInOrder([
+          isEmpty,
+          emitsThrough(['Costco']),
+        ]),
+      );
+      await addTxn(db, category: 'Grocery', cents: 100, date: '2026-01-01', merchant: 'Costco');
+      await done;
+    });
+  });
+
   group('recurring', () {
     test('materialises up to asOf, idempotently, and never regenerates deleted ones', () async {
       final id = await addSeries(db, category: 'Rent', cents: 180000, start: '2026-01-31');
