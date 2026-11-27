@@ -209,10 +209,10 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Lists the merchants already used for [kind], for autocomplete. For income these are sources. When [categoryId] is
-  /// set, only that category's merchants are listed. Names that differ only in case or spacing merge into one entry,
-  /// written the way [normalizeMerchant] writes it. The list is ordered by use count, then by most recent use. Each
-  /// recurring series counts as one use on its start date, so a series that hasn't generated anything yet still
-  /// appears.
+  /// set, only that category's merchants are listed. Names that differ only in case or spacing merge into one entry.
+  /// That entry is written with the casing used most often, and a tie goes to the casing used most recently, then to
+  /// the one that sorts first. The list is ordered by use count, then by most recent use. Each recurring series counts
+  /// as one use on its start date, so a series that hasn't generated anything yet still appears.
   Stream<List<String>> watchMerchants({required TxKind kind, String? categoryId}) {
     const filter = 'deleted_at IS NULL AND kind = ?1 AND (?2 IS NULL OR category_id = ?2)';
     return customSelect(
@@ -226,22 +226,32 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {transactions, recurringSeriesTable},
     ).watch().map((rows) {
       // SQLite's LOWER() only lowercases ASCII letters, so the merge happens here in Dart instead of in the query.
-      final merged = <String, ({int uses, String lastUsed})>{};
+      // First add up the uses of each spelling, since rows that differ only in spacing are the same spelling.
+      final spellings = <String, _MerchantUse>{};
       for (final row in rows) {
-        final name = normalizeMerchant(row.read<String>('merchant'));
-        final uses = row.read<int>('uses');
-        final lastUsed = row.read<String>('last_used');
-        final seen = merged[name];
-        merged[name] = seen == null
-            ? (uses: uses, lastUsed: lastUsed)
-            : (uses: seen.uses + uses, lastUsed: lastUsed.compareTo(seen.lastUsed) > 0 ? lastUsed : seen.lastUsed);
+        final use = _MerchantUse(row.read<int>('uses'), row.read<String>('last_used'));
+        spellings.update(normalizeMerchant(row.read<String>('merchant')), (seen) => seen + use, ifAbsent: () => use);
       }
-      return merged.keys.toList()..sort((a, b) {
-        final x = merged[a]!, y = merged[b]!;
-        if (x.uses != y.uses) return y.uses.compareTo(x.uses);
-        final byDate = y.lastUsed.compareTo(x.lastUsed);
-        return byDate != 0 ? byDate : a.compareTo(b);
-      });
+      // Then merge the spellings that differ only in case. The entry keeps the spelling that ranks highest on its own.
+      final merged = <String, ({String name, _MerchantUse best, _MerchantUse total})>{};
+      for (final MapEntry(key: name, value: use) in spellings.entries) {
+        final key = merchantKey(name);
+        final seen = merged[key];
+        if (seen == null) {
+          merged[key] = (name: name, best: use, total: use);
+        } else if (use.beats(seen.best) || (!seen.best.beats(use) && name.compareTo(seen.name) < 0)) {
+          merged[key] = (name: name, best: use, total: seen.total + use);
+        } else {
+          merged[key] = (name: seen.name, best: seen.best, total: seen.total + use);
+        }
+      }
+      final entries = merged.values.toList()
+        ..sort((a, b) {
+          if (a.total.beats(b.total)) return -1;
+          if (b.total.beats(a.total)) return 1;
+          return a.name.compareTo(b.name);
+        });
+      return [for (final e in entries) e.name];
     });
   }
 
@@ -416,4 +426,17 @@ class AppDatabase extends _$AppDatabase {
 String? _blankToNull(String? s) {
   final t = s?.trim();
   return t == null || t.isEmpty ? null : t;
+}
+
+/// How often a merchant name was used, and the latest day it was used on.
+class _MerchantUse {
+  const _MerchantUse(this.uses, this.lastUsed);
+  final int uses;
+  final String lastUsed;
+
+  _MerchantUse operator +(_MerchantUse other) =>
+      _MerchantUse(uses + other.uses, lastUsed.compareTo(other.lastUsed) >= 0 ? lastUsed : other.lastUsed);
+
+  /// Whether this name ranks above [other]: it was used more often, or as often but more recently.
+  bool beats(_MerchantUse other) => uses != other.uses ? uses > other.uses : lastUsed.compareTo(other.lastUsed) > 0;
 }

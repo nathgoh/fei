@@ -214,30 +214,47 @@ void main() {
       expect(await db.watchMerchants(kind: TxKind.expense, categoryId: rent.id).first, ['Landlord']);
     });
 
-    test('treats names differing only in case or spacing as one, tidily written', () async {
+    Future<void> insertRaw(String name, String date) async {
       final grocery = await categoryNamed(db, 'Grocery');
-      // These rows are inserted directly, the way an import can leave them, so the form never normalizes them.
+      // Rows are inserted directly, the way an import can leave them, so nothing normalizes them first.
+      await db
+          .into(db.transactions)
+          .insert(
+            TransactionsCompanion.insert(
+              kind: TxKind.expense,
+              amountCents: 100,
+              date: date,
+              categoryId: grocery.id,
+              merchant: Value(name),
+            ),
+          );
+    }
+
+    test('merges names differing only in case or spacing, shown in the casing used most', () async {
       for (final (name, date) in [
         ('COSTCO', '2026-01-01'),
         ('costco ', '2026-01-02'),
+        (' Costco', '2026-01-03'),
+        ('Costco', '2026-01-04'),
         ('  trader   JOE\'S', '2026-03-01'),
-        ('Safeway', '2026-02-01'),
-        ('safeway', '2026-02-02'),
+        ('PG&E', '2026-02-01'),
+        ('PG&E', '2026-02-02'),
+        ('pg&e', '2026-02-03'),
+        ('ÉLAN', '2026-01-05'),
+        ('élan', '2026-01-06'),
       ]) {
-        await db
-            .into(db.transactions)
-            .insert(
-              TransactionsCompanion.insert(
-                kind: TxKind.expense,
-                amountCents: 100,
-                date: date,
-                categoryId: grocery.id,
-                merchant: Value(name),
-              ),
-            );
+        await insertRaw(name, date);
       }
-      // Costco and Safeway have 2 uses each, and Safeway was used more recently.
-      expect(await db.watchMerchants(kind: TxKind.expense).first, ['Safeway', 'Costco', "Trader Joe's"]);
+      // Costco is used 4 times, twice as "Costco" once spacing is ignored. PG&E is used 3 times, twice as "PG&E" even
+      // though "pg&e" is newer. The two spellings of Élan tie on uses, so the newer "élan" wins, and lowercasing
+      // non-ASCII letters in Dart merges them.
+      expect(await db.watchMerchants(kind: TxKind.expense).first, ['Costco', 'PG&E', 'élan', "trader JOE'S"]);
+    });
+
+    test('breaks a tie in uses and date by the spelling that sorts first', () async {
+      await insertRaw('eBay', '2026-01-01');
+      await insertRaw('EBAY', '2026-01-01');
+      expect(await db.watchMerchants(kind: TxKind.expense).first, ['EBAY']);
     });
 
     test('emits again when a new merchant is saved', () async {

@@ -183,28 +183,52 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('saves the merchant trimmed and capitalised, matching past ones whatever the case', (tester) async {
+  testWidgets('saves the merchant as typed, only trimmed, and matches past ones whatever the case', (tester) async {
     final (db, _) = await pumpFei(tester, seed: seedMonth);
     await openTab(tester, 'Transactions');
     await tester.tap(find.byTooltip('Add transaction'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '7');
     await chooseCategory(tester, 'Grocery');
-    await tester.enterText(merchantField('Merchant'), 'cost');
+    await tester.enterText(merchantField('Merchant'), 'COST');
     await settle(tester);
     expect(suggestions(tester), ['Costco'], reason: 'matching ignores case');
-    await tester.enterText(merchantField('Merchant'), '  COSTCO  ');
+    await tester.enterText(merchantField('Merchant'), '  costco  ');
     await settle(tester);
-    expect(suggestions(tester), isEmpty, reason: 'the typed name already is that merchant');
+    expect(suggestions(tester), isEmpty, reason: 'the typed name already is that merchant, ignoring case and spacing');
+    await tester.enterText(merchantField('Merchant'), '  PG&E  ');
     await tester.tap(find.text('Add transaction').last);
     await settle(tester);
 
     final added = (await dbRun(tester, db.transactionsBetween)).firstWhere((t) => t.amountCents == 700);
-    expect(added.merchant, 'Costco');
-    expect(await dbRun(tester, () => db.watchMerchants(kind: TxKind.expense).first), [
+    expect(added.merchant, 'PG&E', reason: 'the casing is kept as typed');
+    await unmount(tester);
+  });
+
+  testWidgets('saves an eBay merchant without changing its casing, merged with past ones', (tester) async {
+    final (db, _) = await pumpFei(
+      tester,
+      seed: (db) async {
+        await seedMonth(db);
+        await addTxn(db, category: 'Grocery', cents: 999, date: '2020-01-01', merchant: 'EBAY');
+      },
+    );
+    await openTab(tester, 'Transactions');
+    await tester.tap(find.byTooltip('Add transaction'));
+    await settle(tester);
+    await tester.enterText(find.byType(TextField).first, '7');
+    await chooseCategory(tester, 'Grocery');
+    await tester.enterText(merchantField('Merchant'), ' eBay ');
+    await tester.tap(find.text('Add transaction').last);
+    await settle(tester);
+
+    final added = (await dbRun(tester, db.transactionsBetween)).firstWhere((t) => t.amountCents == 700);
+    expect(added.merchant, 'eBay');
+    final grocery = await dbRun(tester, () => categoryNamed(db, 'Grocery'));
+    expect(await dbRun(tester, () => db.watchMerchants(kind: TxKind.expense, categoryId: grocery.id).first), [
+      'eBay',
       'Costco',
-      'Chipotle',
-    ], reason: 'merged into the existing Costco, now used twice');
+    ], reason: 'EBAY and eBay merge into one entry, written the newer way since both are used once');
     await unmount(tester);
   });
 

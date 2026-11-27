@@ -73,11 +73,14 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
   }
 
   Iterable<String> _options(List<String> suggestions, String text) {
-    // Saving runs the name through normalizeMerchant, so a suggestion that equals the typed text once normalized would
-    // save the same value. The filter leaves it out.
-    final q = normalizeMerchant(text).toLowerCase();
+    // A suggestion matches when it contains the typed text, ignoring case. A suggestion that equals the typed text,
+    // ignoring case and spacing, is the merchant already typed, so the filter leaves it out.
+    final q = merchantKey(text);
     return suggestions
-        .where((m) => m.toLowerCase() != q && m.toLowerCase().contains(q))
+        .where((m) {
+          final key = merchantKey(m);
+          return key != q && key.contains(q);
+        })
         .take(MerchantField.maxSuggestions);
   }
 
