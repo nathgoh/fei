@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/database.dart';
+import 'emoji_glyph.dart';
 import 'theme.dart';
 
 class CategoryAvatar extends StatelessWidget {
@@ -20,7 +21,7 @@ class CategoryAvatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(color: color.withValues(alpha: 0.22), shape: BoxShape.circle),
-      child: Text(category?.emoji ?? '❔', style: TextStyle(fontSize: size * 0.45)),
+      child: EmojiGlyph(category?.emoji ?? '❔', size: size * 0.45),
     );
   }
 }

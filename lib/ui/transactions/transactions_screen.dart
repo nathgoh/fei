@@ -6,6 +6,7 @@ import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
+import '../emoji_glyph.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'transaction_form.dart';
@@ -232,7 +233,9 @@ class _FilterBar extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               FilterChip(
-                avatar: category == null ? const Icon(Icons.category_outlined, size: 18) : Text(category.emoji),
+                avatar: category == null
+                    ? const Icon(Icons.category_outlined, size: 18)
+                    : EmojiGlyph(category.emoji, size: 14),
                 label: Text(category?.name ?? 'All categories'),
                 selected: category != null,
                 showCheckmark: false,
