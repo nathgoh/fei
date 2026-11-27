@@ -226,10 +226,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               _merchant = v;
               _merchantMissing = false;
             }),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.storefront_outlined),
-              errorText: _merchantMissing ? merchantMissingMessage(_kind) : null,
-            ),
+            missing: _merchantMissing,
+            prefixIcon: const Icon(Icons.storefront_outlined),
           ),
           const SizedBox(height: 12),
           TextField(

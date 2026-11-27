@@ -225,33 +225,20 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(kind.name), Variable<String>(categoryId)],
       readsFrom: {transactions, recurringSeriesTable},
     ).watch().map((rows) {
-      // SQLite's LOWER() only lowercases ASCII letters, so the merge happens here in Dart instead of in the query.
-      // First add up the uses of each spelling, since rows that differ only in spacing are the same spelling.
-      final spellings = <String, _MerchantUse>{};
+      // SQLite's LOWER() only lowercases ASCII letters, so names are grouped by merchantKey here in Dart. Each group
+      // maps a spelling, with its spacing tidied, to its uses. Rows differing only in spacing share one spelling.
+      final groups = <String, Map<String, _MerchantUse>>{};
       for (final row in rows) {
-        final use = _MerchantUse(row.read<int>('uses'), row.read<String>('last_used'));
-        spellings.update(normalizeMerchant(row.read<String>('merchant')), (seen) => seen + use, ifAbsent: () => use);
+        final name = normalizeMerchant(row.read<String>('merchant'));
+        final use = _MerchantUse(name, row.read<int>('uses'), row.read<String>('last_used'));
+        groups.putIfAbsent(merchantKey(name), () => {}).update(name, (seen) => seen + use, ifAbsent: () => use);
       }
-      // Then merge the spellings that differ only in case. The entry keeps the spelling that ranks highest on its own.
-      final merged = <String, ({String name, _MerchantUse best, _MerchantUse total})>{};
-      for (final MapEntry(key: name, value: use) in spellings.entries) {
-        final key = merchantKey(name);
-        final seen = merged[key];
-        if (seen == null) {
-          merged[key] = (name: name, best: use, total: use);
-        } else if (use.beats(seen.best) || (!seen.best.beats(use) && name.compareTo(seen.name) < 0)) {
-          merged[key] = (name: name, best: use, total: seen.total + use);
-        } else {
-          merged[key] = (name: seen.name, best: seen.best, total: seen.total + use);
-        }
-      }
-      final entries = merged.values.toList()
-        ..sort((a, b) {
-          if (a.total.beats(b.total)) return -1;
-          if (b.total.beats(a.total)) return 1;
-          return a.name.compareTo(b.name);
-        });
-      return [for (final e in entries) e.name];
+      // A group shows its top-ranked spelling and the uses of all its spellings added together.
+      final merged = [
+        for (final spellings in groups.values)
+          (spellings.values.toList()..sort()).reduce((best, other) => best + other),
+      ]..sort();
+      return [for (final m in merged) m.name];
     });
   }
 
@@ -429,14 +416,21 @@ String? _blankToNull(String? s) {
 }
 
 /// How often a merchant name was used, and the latest day it was used on.
-class _MerchantUse {
-  const _MerchantUse(this.uses, this.lastUsed);
+class _MerchantUse implements Comparable<_MerchantUse> {
+  const _MerchantUse(this.name, this.uses, this.lastUsed);
+  final String name;
   final int uses;
   final String lastUsed;
 
+  /// Adds [other]'s uses to this name's uses, keeping this name.
   _MerchantUse operator +(_MerchantUse other) =>
-      _MerchantUse(uses + other.uses, lastUsed.compareTo(other.lastUsed) >= 0 ? lastUsed : other.lastUsed);
+      _MerchantUse(name, uses + other.uses, lastUsed.compareTo(other.lastUsed) >= 0 ? lastUsed : other.lastUsed);
 
-  /// Whether this name ranks above [other]: it was used more often, or as often but more recently.
-  bool beats(_MerchantUse other) => uses != other.uses ? uses > other.uses : lastUsed.compareTo(other.lastUsed) > 0;
+  /// Ranks the name used most often first, then the one used most recently, then the one that sorts first.
+  @override
+  int compareTo(_MerchantUse other) {
+    if (uses != other.uses) return other.uses.compareTo(uses);
+    if (lastUsed != other.lastUsed) return other.lastUsed.compareTo(lastUsed);
+    return name.compareTo(other.name);
+  }
 }
