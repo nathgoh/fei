@@ -38,10 +38,7 @@ void main() {
     await tester.tap(find.byTooltip('Add transaction'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '42.50');
-    await tester.tap(find.text('Choose a category'));
-    await settle(tester);
-    await tester.tap(find.text('Grocery'));
-    await settle(tester);
+    await chooseCategory(tester, 'Grocery');
     await tester.enterText(merchantField('Merchant'), 'Costco');
     await tester.tap(find.text('Add transaction').last);
     await settle(tester);
@@ -101,10 +98,7 @@ void main() {
     await tester.tap(find.byTooltip('Add recurring'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '15.99');
-    await tester.tap(find.text('Choose a category'));
-    await settle(tester);
-    await tester.tap(find.text('Entertainment'));
-    await settle(tester);
+    await chooseCategory(tester, 'Entertainment');
     await tester.enterText(merchantField('Merchant'), 'Netflix');
     await scrollTo(tester, find.text('Add recurring'));
     await tester.tap(find.text('Add recurring'));
@@ -348,6 +342,24 @@ void main() {
     await openTab(tester, 'Transactions');
     await tester.drag(find.text('Chipotle'), const Offset(-600, 0));
     await settle(tester);
+    expect(find.text('Chipotle'), findsNothing);
+    expect(await dbRun(tester, db.transactionsBetween), hasLength(2));
+
+    await tester.tap(find.text('Undo'));
+    await settle(tester);
+    expect(await dbRun(tester, db.transactionsBetween), hasLength(3));
+    expect(find.text('Chipotle'), findsOneWidget);
+    await unmount(tester);
+  });
+
+  testWidgets('delete from the form, with undo', (tester) async {
+    final (db, _) = await pumpFei(tester, seed: seedMonth);
+    await openTab(tester, 'Transactions');
+    await tester.tap(find.text('Chipotle'));
+    await settle(tester);
+    await tester.tap(find.byTooltip('Delete'));
+    await settle(tester);
+    expect(find.text('Transaction deleted'), findsOneWidget);
     expect(find.text('Chipotle'), findsNothing);
     expect(await dbRun(tester, db.transactionsBetween), hasLength(2));
 

@@ -1,5 +1,3 @@
-import 'package:drift/drift.dart';
-
 import 'database.dart';
 
 class SeedCategory {
@@ -57,34 +55,17 @@ SeedCategory? defaultCategoryNamed(String name) {
 }
 
 Future<void> seedDefaults(AppDatabase db) async {
-  var groupOrder = 0;
-  var categoryOrder = 0;
   for (final g in defaultGroups) {
-    final groupId = newId();
-    await db
-        .into(db.categoryGroups)
-        .insert(
-          CategoryGroupsCompanion.insert(
-            id: Value(groupId),
-            name: g.name,
-            kind: g.kind,
-            sortOrder: Value(groupOrder++),
-          ),
-        );
+    final groupId = await db.addGroup(g.name, g.kind);
     for (final c in g.categories) {
-      await db
-          .into(db.categories)
-          .insert(
-            CategoriesCompanion.insert(
-              groupId: groupId,
-              name: c.name,
-              kind: g.kind,
-              emoji: Value(c.emoji),
-              color: Value(c.color),
-              isFixed: Value(c.isFixed),
-              sortOrder: Value(categoryOrder++),
-            ),
-          );
+      await db.addCategory(
+        name: c.name,
+        groupId: groupId,
+        kind: g.kind,
+        emoji: c.emoji,
+        color: c.color,
+        isFixed: c.isFixed,
+      );
     }
   }
 }

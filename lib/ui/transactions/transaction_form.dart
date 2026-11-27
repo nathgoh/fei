@@ -130,17 +130,12 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final id = widget.txn!.id;
     await db.deleteTransactions([id]);
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('Transaction deleted'),
-          behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreTransactions([id])),
-        ),
-      );
+    showMessage(
+      context,
+      'Transaction deleted',
+      action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreTransactions([id])),
+    );
   }
 
   Future<void> _pickDate({required bool end}) async {

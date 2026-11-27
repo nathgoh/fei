@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
@@ -365,13 +366,5 @@ class _AxisBarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AxisBarPainter old) =>
-      old.span != span || old.total != total || old.track != track || !_sameSegments(old.segments, segments);
-
-  static bool _sameSegments(List<_Segment> a, List<_Segment> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
+      old.span != span || old.total != total || old.track != track || !listEquals(old.segments, segments);
 }
