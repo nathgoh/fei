@@ -65,16 +65,20 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
     return Padding(
       // Lifts the sheet above the on-screen keyboard while searching.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SizedBox(
+      child: Container(
         height: (screen.height * 0.6).clamp(320.0, 460.0),
+        // One inset for the search field, the tabs and the grid, so they all
+        // share the same edges. 16 matches the app's other sheets.
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final config = Config(
               height: null,
               locale: _locale,
               emojiViewConfig: EmojiViewConfig(
-                // About 48px per cell, so phones get 8 columns and the wider web
-                // sheet gets more without the emoji growing huge.
+                // At least 48px per cell, so each emoji is a comfortable tap
+                // target: 7 columns on a phone, more on the wider web sheet
+                // without the emoji growing huge.
                 columns: (constraints.maxWidth / 48).floor().clamp(6, 14),
                 emojiSizeMax: 28,
                 backgroundColor: background,
@@ -100,7 +104,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: TextField(
                     decoration: const InputDecoration(hintText: 'Search emoji', prefixIcon: Icon(Icons.search)),
                     onChanged: _search,

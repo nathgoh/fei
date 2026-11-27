@@ -1,4 +1,4 @@
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' show EmojiPicker;
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' show EmojiCell, EmojiPicker;
 // The package's documented hook for clearing its static recent-emoji cache between tests.
 // ignore: implementation_imports
 import 'package:emoji_picker_flutter/src/emoji_picker_internal_utils.dart' show EmojiPickerInternalUtils;
@@ -129,6 +129,38 @@ void main() {
     await tester.tap(find.text('Save'));
     await settle(tester);
     expect((await dbRun(tester, () => categoryNamed(db, 'Travel'))).emoji, '🚗');
+    await unmount(tester);
+  });
+
+  testWidgets('the search field, tabs and emoji grid share the same left and right edges', (tester) async {
+    await pumpFei(tester);
+    await editTravel(tester);
+    await tester.tap(iconPreview);
+    await settle(tester);
+
+    final sheet = tester.getRect(find.byType(EmojiPickerSheet));
+    final field = tester.getRect(find.widgetWithText(TextField, 'Search emoji'));
+    // Inset the same as the app's other sheets.
+    expect(field.left - sheet.left, 16);
+    expect(sheet.right - field.right, 16);
+
+    void expectGridAligned() {
+      final cells = find.descendant(of: find.byType(EmojiPickerSheet), matching: find.byType(EmojiCell));
+      final rects = [for (var i = 0; i < cells.evaluate().length; i++) tester.getRect(cells.at(i))];
+      final firstRow = rects.where((r) => r.top == rects.first.top).toList();
+      expect(firstRow.length, greaterThan(1));
+      expect(firstRow.first.left, moreOrLessEquals(field.left));
+      expect(firstRow.last.right, moreOrLessEquals(field.right));
+    }
+
+    final tabs = tester.getRect(find.descendant(of: find.byType(EmojiPicker), matching: find.byType(TabBar)));
+    expect(tabs.left, field.left);
+    expect(tabs.right, field.right);
+    expectGridAligned();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Search emoji'), 'money');
+    await settle(tester);
+    expectGridAligned();
     await unmount(tester);
   });
 
