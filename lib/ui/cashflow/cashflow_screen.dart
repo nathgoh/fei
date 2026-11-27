@@ -50,7 +50,8 @@ class CashFlowScreen extends ConsumerWidget {
             year: year,
             month: month,
             categoryId: categoryId,
-            kind: categoryId == null ? null : TxKind.expense,
+            // The category breakdown lists expenses; a month keeps whichever tab was open.
+            kind: categoryId == null ? ref.read(transactionFilterProvider).kind : TxKind.expense,
           ),
         );
     context.go('/transactions');

@@ -33,13 +33,6 @@ void main() {
     await settle(tester);
   }
 
-  Future<void> chooseMenu(WidgetTester tester, String chip, String option) async {
-    await tester.tap(find.text(chip));
-    await settle(tester);
-    await tester.tap(find.text(option).last);
-    await settle(tester);
-  }
-
   testWidgets('adding a transaction from the dashboard', (tester) async {
     final (db, _) = await pumpFei(tester);
     await tester.tap(find.byTooltip('Add transaction'));
@@ -66,7 +59,7 @@ void main() {
   testWidgets('the form insists on an amount, a merchant and a category', (tester) async {
     final (db, _) = await pumpFei(tester);
     await openTab(tester, 'Transactions');
-    await tester.tap(find.byTooltip('Add transaction'));
+    await tester.tap(find.byTooltip('Add expense'));
     await settle(tester);
     expect(find.text('Notes (optional)'), findsOneWidget);
     expect(find.textContaining('(optional)'), findsOneWidget, reason: 'only notes are optional');
@@ -77,7 +70,7 @@ void main() {
     expect(await dbRun(tester, db.transactionsBetween), isEmpty);
 
     // For income, the field is labeled 'Source'.
-    await tester.tap(find.text('Income'));
+    await tester.tap(find.text('Income').last);
     await settle(tester);
     expect(merchantField('Source'), findsOneWidget);
     expect(find.text('Enter a source'), findsOneWidget);
@@ -127,28 +120,58 @@ void main() {
     await unmount(tester);
   });
 
-  testWidgets('lists the month with totals, and filters by search and type', (tester) async {
+  testWidgets('lists the month with totals, and filters by search', (tester) async {
     await pumpFei(tester, seed: seedMonth);
     await openTab(tester, 'Transactions');
-    expect(find.text(r'3 transactions · In $4,000.00 · Out $57.50'), findsOneWidget);
+    expect(find.text(r'2 transactions · Spent $57.50'), findsOneWidget);
     expect(find.text('Costco'), findsOneWidget);
+    expect(find.text('Acme Corp'), findsNothing, reason: 'income is on its own tab');
 
     await tester.tap(find.byTooltip('Search'));
     await settle(tester);
     await tester.enterText(find.byType(TextField), 'cost');
     await settle(tester);
-    expect(find.text(r'1 transaction · In $0.00 · Out $45.50'), findsOneWidget);
+    expect(find.text(r'1 transaction · Spent $45.50'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'zzz');
     await settle(tester);
     expect(find.text('Nothing matches these filters'), findsOneWidget);
     await tester.tap(find.byTooltip('Close search'));
     await settle(tester);
+    await unmount(tester);
+  });
 
-    await chooseMenu(tester, 'All types', 'Income');
+  testWidgets('expenses and income each have a tab', (tester) async {
+    final (db, _) = await pumpFei(tester, seed: seedMonth);
+    await openTab(tester, 'Transactions');
+    await tester.tap(find.text('All categories'));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.text('Grocery')));
+    await settle(tester);
+    expect(find.text('Chipotle'), findsNothing);
+
+    await tester.tap(find.widgetWithText(Tab, 'Income'));
+    await settle(tester);
+    expect(find.text(r'1 transaction · Received $4,000.00'), findsOneWidget);
     expect(find.text('Acme Corp'), findsOneWidget);
     expect(find.text('Costco'), findsNothing);
-    await chooseMenu(tester, 'Income', 'All types');
-    expect(find.text('Costco'), findsOneWidget);
+    expect(find.text('All categories'), findsOneWidget, reason: 'an expense category filter is cleared');
+
+    // Adding from the Income tab starts an income.
+    await tester.tap(find.byTooltip('Add income'));
+    await settle(tester);
+    await tester.enterText(find.byType(TextField).first, '25');
+    await tester.enterText(merchantField('Source'), 'Refund');
+    await chooseCategory(tester, 'Paycheck');
+    await tester.tap(find.text('Add transaction').last);
+    await settle(tester);
+    final added = (await dbRun(tester, db.transactionsBetween)).firstWhere((t) => t.merchant == 'Refund');
+    expect(added.kind, TxKind.income);
+    expect(find.text('Refund'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(Tab, 'Expenses'));
+    await settle(tester);
+    expect(find.text('Chipotle'), findsOneWidget);
+    expect(find.text('Acme Corp'), findsNothing);
     await unmount(tester);
   });
 
@@ -186,7 +209,7 @@ void main() {
   testWidgets('saves the merchant as typed, only trimmed, and matches past ones whatever the case', (tester) async {
     final (db, _) = await pumpFei(tester, seed: seedMonth);
     await openTab(tester, 'Transactions');
-    await tester.tap(find.byTooltip('Add transaction'));
+    await tester.tap(find.byTooltip('Add expense'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '7');
     await chooseCategory(tester, 'Grocery');
@@ -214,7 +237,7 @@ void main() {
       },
     );
     await openTab(tester, 'Transactions');
-    await tester.tap(find.byTooltip('Add transaction'));
+    await tester.tap(find.byTooltip('Add expense'));
     await settle(tester);
     await tester.enterText(find.byType(TextField).first, '7');
     await chooseCategory(tester, 'Grocery');
@@ -238,6 +261,8 @@ void main() {
       seed: (db) => addTxn(db, category: 'Paycheck', cents: 1000, date: firstOfMonth, notes: 'Bonus'),
     );
     await openTab(tester, 'Transactions');
+    await tester.tap(find.widgetWithText(Tab, 'Income'));
+    await settle(tester);
     await tester.tap(find.text('Bonus'));
     await settle(tester);
     expect(merchantField('Source'), findsOneWidget);
@@ -264,7 +289,7 @@ void main() {
       },
     );
     await openTab(tester, 'Transactions');
-    await tester.tap(find.byTooltip('Add transaction'));
+    await tester.tap(find.byTooltip('Add expense'));
     await settle(tester);
 
     // The focused, empty field lists every expense merchant, most used first.
@@ -286,7 +311,7 @@ void main() {
     expect(suggestions(tester), ['Safeway', 'Costco']);
 
     // With Income picked, the list shows income sources.
-    await tester.tap(find.text('Income'));
+    await tester.tap(find.text('Income').last);
     await settle(tester);
     await tester.tap(merchantField('Source'));
     await settle(tester);
@@ -333,7 +358,7 @@ void main() {
     await tester.tap(find.byTooltip('Previous').last);
     await settle(tester);
     final previous = DateTime(now.year, now.month - 1);
-    expect(find.text('No transactions in ${formatMonthYear(previous.year, previous.month)}'), findsOneWidget);
+    expect(find.text('No expenses in ${formatMonthYear(previous.year, previous.month)}'), findsOneWidget);
     await tester.tap(find.byTooltip('Next').last);
     await settle(tester);
     expect(find.text('Costco'), findsOneWidget);

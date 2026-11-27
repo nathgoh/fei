@@ -360,7 +360,10 @@ class _RecentCard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 8),
       trailing: TextButton(
         onPressed: () {
-          ref.read(transactionFilterProvider.notifier).set(TransactionFilter(year: month.year, month: month.month));
+          final kind = ref.read(transactionFilterProvider).kind;
+          ref
+              .read(transactionFilterProvider.notifier)
+              .set(TransactionFilter(year: month.year, month: month.month, kind: kind));
           context.go('/transactions');
         },
         child: const Text('View all'),

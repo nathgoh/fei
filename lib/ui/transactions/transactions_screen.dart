@@ -12,10 +12,12 @@ import '../widgets.dart';
 import 'transaction_form.dart';
 
 class TransactionFilter {
-  const TransactionFilter({this.year, this.month, this.kind, this.categoryId, this.query = ''});
+  const TransactionFilter({this.year, this.month, this.kind = TxKind.expense, this.categoryId, this.query = ''});
   final int? year;
   final int? month;
-  final TxKind? kind;
+
+  /// Which tab is showing: expenses or income.
+  final TxKind kind;
   final String? categoryId;
   final String query;
 
@@ -34,13 +36,13 @@ class TransactionFilter {
   TransactionFilter copyWith({
     Object? year = _keep,
     Object? month = _keep,
-    Object? kind = _keep,
+    TxKind? kind,
     Object? categoryId = _keep,
     String? query,
   }) => TransactionFilter(
     year: year == _keep ? this.year : year as int?,
     month: month == _keep ? this.month : month as int?,
-    kind: kind == _keep ? this.kind : kind as TxKind?,
+    kind: kind ?? this.kind,
     categoryId: categoryId == _keep ? this.categoryId : categoryId as String?,
     query: query ?? this.query,
   );
@@ -70,14 +72,29 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
+/// The tabs, in the order they appear.
+const _tabKinds = [TxKind.expense, TxKind.income];
+
+class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with SingleTickerProviderStateMixin {
   bool _searching = false;
   final _search = TextEditingController();
+  late final TabController _tabs = TabController(
+    length: _tabKinds.length,
+    vsync: this,
+    initialIndex: _tabKinds.indexOf(ref.read(transactionFilterProvider).kind),
+  );
 
   @override
   void dispose() {
     _search.dispose();
+    _tabs.dispose();
     super.dispose();
+  }
+
+  /// Switches tab. The category filter is cleared, since a category belongs to only one kind.
+  void _selectTab(int index) {
+    final kind = _tabKinds[index];
+    if (kind != _filter.kind) _set(_filter.copyWith(kind: kind, categoryId: null));
   }
 
   TransactionFilter get _filter => ref.read(transactionFilterProvider);
@@ -108,6 +125,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final filter = ref.watch(transactionFilterProvider);
     final categories = ref.watch(categoryMapProvider);
     final txnsAsync = ref.watch(transactionsProvider(filter.range));
+    // Other screens can change the tab when they drill down here.
+    ref.listen(transactionFilterProvider.select((f) => f.kind), (_, kind) {
+      final index = _tabKinds.indexOf(kind);
+      if (_tabs.index != index) _tabs.animateTo(index);
+    });
+    final isIncome = filter.kind == TxKind.income;
 
     return Scaffold(
       appBar: AppBar(
@@ -123,6 +146,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 onChanged: (v) => _set(_filter.copyWith(query: v)),
               )
             : const Text('Transactions'),
+        bottom: TabBar(
+          controller: _tabs,
+          onTap: _selectTab,
+          tabs: const [
+            Tab(text: 'Expenses'),
+            Tab(text: 'Income'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: _searching ? 'Close search' : 'Search',
@@ -140,8 +171,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: null, // tabs stay mounted in an IndexedStack; shared default tags clash
-        onPressed: () => showTransactionForm(context),
-        tooltip: 'Add transaction',
+        onPressed: () => showTransactionForm(context, kind: filter.kind),
+        tooltip: isIncome ? 'Add income' : 'Add expense',
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -158,15 +189,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             child: AsyncView(
               txnsAsync,
               builder: (all) {
-                final txns = _apply(all, filter, categories);
+                final ofKind = all.where((t) => t.kind == filter.kind).toList();
+                final txns = _apply(ofKind, filter, categories);
                 if (txns.isEmpty) {
                   return EmptyState(
                     icon: Icons.receipt_long_outlined,
-                    title: all.isEmpty ? 'No transactions in ${filter.periodLabel}' : 'Nothing matches these filters',
-                    message: all.isEmpty ? 'Tap Add to record an expense or income.' : null,
+                    title: ofKind.isEmpty
+                        ? 'No ${isIncome ? 'income' : 'expenses'} in ${filter.periodLabel}'
+                        : 'Nothing matches these filters',
+                    message: ofKind.isEmpty ? 'Tap Add to record ${isIncome ? 'income' : 'an expense'}.' : null,
                   );
                 }
-                return _TransactionList(txns: txns, categories: categories);
+                return _TransactionList(txns: txns, kind: filter.kind, categories: categories);
               },
             ),
           ),
@@ -175,10 +209,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  List<Txn> _apply(List<Txn> all, TransactionFilter f, Map<String, Category> categories) {
+  List<Txn> _apply(List<Txn> txns, TransactionFilter f, Map<String, Category> categories) {
     final q = f.query.trim().toLowerCase();
-    return all.where((t) {
-      if (f.kind != null && t.kind != f.kind) return false;
+    return txns.where((t) {
       if (f.categoryId != null && t.categoryId != f.categoryId) return false;
       if (q.isNotEmpty) {
         final haystack = [
@@ -221,17 +254,6 @@ class _FilterBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              _MenuChip<TxKind?>(
-                label: switch (filter.kind) {
-                  null => 'All types',
-                  TxKind.income => 'Income',
-                  TxKind.expense => 'Expenses',
-                },
-                selected: filter.kind != null,
-                options: const {null: 'All types', TxKind.expense: 'Expenses', TxKind.income: 'Income'},
-                onSelected: (k) => onChanged(filter.copyWith(kind: k)),
-              ),
-              const SizedBox(width: 8),
               FilterChip(
                 avatar: category == null
                     ? const Icon(Icons.category_outlined, size: 18)
@@ -258,41 +280,17 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-class _MenuChip<T> extends StatelessWidget {
-  const _MenuChip({required this.label, required this.selected, required this.options, required this.onSelected});
-  final String label;
-  final bool selected;
-  final Map<T, String> options;
-  final ValueChanged<T> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      menuChildren: [
-        for (final e in options.entries) MenuItemButton(onPressed: () => onSelected(e.key), child: Text(e.value)),
-      ],
-      builder: (context, controller, _) => FilterChip(
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [Text(label), const Icon(Icons.arrow_drop_down, size: 18)],
-        ),
-        selected: selected,
-        showCheckmark: false,
-        onSelected: (_) => controller.isOpen ? controller.close() : controller.open(),
-      ),
-    );
-  }
-}
-
 class _TransactionList extends ConsumerWidget {
-  const _TransactionList({required this.txns, required this.categories});
+  const _TransactionList({required this.txns, required this.kind, required this.categories});
+
+  /// All of one [kind].
   final List<Txn> txns;
+  final TxKind kind;
   final Map<String, Category> categories;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final income = txns.where((t) => t.kind == TxKind.income).map((t) => t.amountCents).sum;
-    final expense = txns.where((t) => t.kind == TxKind.expense).map((t) => t.amountCents).sum;
+    final total = txns.map((t) => t.amountCents).sum;
     final byDay = groupBy(txns, (Txn t) => t.date);
     final items = <Object>[];
     for (final day in byDay.keys) {
@@ -313,7 +311,7 @@ class _TransactionList extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                 child: Text(
                   '${txns.length} transaction${txns.length == 1 ? '' : 's'} · '
-                  'In ${formatMoney(income)} · Out ${formatMoney(expense)}',
+                  '${kind == TxKind.income ? 'Received' : 'Spent'} ${formatMoney(total)}',
                   style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
               );
@@ -321,10 +319,7 @@ class _TransactionList extends ConsumerWidget {
             final item = items[i - 1];
             if (item is String) {
               final date = parseYmd(item);
-              final dayTotal = byDay[item]!.fold<int>(
-                0,
-                (sum, t) => sum + (t.kind == TxKind.income ? t.amountCents : -t.amountCents),
-              );
+              final dayTotal = byDay[item]!.map((t) => t.amountCents).sum;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                 child: Row(
@@ -336,7 +331,7 @@ class _TransactionList extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      formatSigned(dayTotal),
+                      formatMoney(dayTotal),
                       style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant),
                     ),
                   ],
