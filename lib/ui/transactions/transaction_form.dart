@@ -12,10 +12,10 @@ import '../theme.dart';
 import '../widgets.dart';
 import 'merchant_field.dart';
 
-/// Opens the add/edit transaction sheet. With [startRecurring] the "Repeat"
-/// option starts switched on.
-Future<void> showTransactionForm(BuildContext context, {Txn? txn, bool startRecurring = false}) {
-  final form = _TransactionForm(txn: txn, startRecurring: startRecurring);
+/// Opens the add/edit transaction sheet. A new transaction starts as [kind] (an expense by default). With
+/// [startRecurring] the "Repeat" option starts switched on.
+Future<void> showTransactionForm(BuildContext context, {Txn? txn, TxKind? kind, bool startRecurring = false}) {
+  final form = _TransactionForm(txn: txn, kind: kind, startRecurring: startRecurring);
   if (context.isWide) {
     return showDialog(
       context: context,
@@ -35,8 +35,9 @@ Future<void> showTransactionForm(BuildContext context, {Txn? txn, bool startRecu
 }
 
 class _TransactionForm extends ConsumerStatefulWidget {
-  const _TransactionForm({this.txn, this.startRecurring = false});
+  const _TransactionForm({this.txn, this.kind, this.startRecurring = false});
   final Txn? txn;
+  final TxKind? kind;
   final bool startRecurring;
 
   @override
@@ -63,7 +64,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   void initState() {
     super.initState();
     final t = widget.txn;
-    _kind = t?.kind ?? TxKind.expense;
+    _kind = t?.kind ?? widget.kind ?? TxKind.expense;
     _amount = TextEditingController(text: t == null ? '' : (t.amountCents / 100).toStringAsFixed(2));
     _merchant = t?.merchant ?? '';
     _notes = TextEditingController(text: t?.notes ?? '');

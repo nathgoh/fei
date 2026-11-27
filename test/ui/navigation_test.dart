@@ -11,7 +11,7 @@ void main() {
     await scrollTo(tester, find.text('No transactions this month.'));
 
     await openTab(tester, 'Transactions');
-    expect(find.textContaining('No transactions in'), findsOneWidget);
+    expect(find.textContaining('No expenses in'), findsOneWidget);
 
     await openTab(tester, 'Cash Flow');
     expect(find.text('No data for this year'), findsOneWidget);
