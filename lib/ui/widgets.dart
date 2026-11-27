@@ -196,12 +196,19 @@ class PeriodSwitcher extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(onPressed: onPrevious, icon: const Icon(Icons.chevron_left), tooltip: 'Previous'),
-        InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Text(label, style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Flexible(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
         ),
         IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right), tooltip: 'Next'),

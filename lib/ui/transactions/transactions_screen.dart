@@ -175,36 +175,43 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
         tooltip: isIncome ? 'Add income' : 'Add expense',
         child: const Icon(Icons.add),
       ),
-      body: Column(
-        children: [
-          _FilterBar(
-            filter: filter,
-            categories: categories,
-            onPrevious: filter.year == null ? null : () => _shiftMonth(-1),
-            onNext: filter.year == null ? null : () => _shiftMonth(1),
-            onPickPeriod: _pickPeriod,
-            onChanged: _set,
+      // Keeps the filter bar and list to one readable column on wide screens.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            children: [
+              _FilterBar(
+                filter: filter,
+                categories: categories,
+                onPrevious: filter.year == null ? null : () => _shiftMonth(-1),
+                onNext: filter.year == null ? null : () => _shiftMonth(1),
+                onPickPeriod: _pickPeriod,
+                onChanged: _set,
+              ),
+              Expanded(
+                child: AsyncView(
+                  txnsAsync,
+                  builder: (all) {
+                    final ofKind = all.where((t) => t.kind == filter.kind).toList();
+                    final txns = _apply(ofKind, filter, categories);
+                    if (txns.isEmpty) {
+                      return EmptyState(
+                        icon: Icons.receipt_long_outlined,
+                        title: ofKind.isEmpty
+                            ? 'No ${isIncome ? 'income' : 'expenses'} in ${filter.periodLabel}'
+                            : 'Nothing matches these filters',
+                        message: ofKind.isEmpty ? 'Tap Add to record ${isIncome ? 'income' : 'an expense'}.' : null,
+                      );
+                    }
+                    return _TransactionList(txns: txns, kind: filter.kind, categories: categories);
+                  },
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: AsyncView(
-              txnsAsync,
-              builder: (all) {
-                final ofKind = all.where((t) => t.kind == filter.kind).toList();
-                final txns = _apply(ofKind, filter, categories);
-                if (txns.isEmpty) {
-                  return EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: ofKind.isEmpty
-                        ? 'No ${isIncome ? 'income' : 'expenses'} in ${filter.periodLabel}'
-                        : 'Nothing matches these filters',
-                    message: ofKind.isEmpty ? 'Tap Add to record ${isIncome ? 'income' : 'an expense'}.' : null,
-                  );
-                }
-                return _TransactionList(txns: txns, kind: filter.kind, categories: categories);
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -246,36 +253,44 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = categories[filter.categoryId];
-    return Column(
-      children: [
-        PeriodSwitcher(label: filter.periodLabel, onPrevious: onPrevious, onNext: onNext, onTap: onPickPeriod),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+      child: Column(
+        children: [
+          Row(
             children: [
-              FilterChip(
-                avatar: category == null
-                    ? const Icon(Icons.category_outlined, size: 18)
-                    : EmojiGlyph(category.emoji, size: 14),
-                label: Text(category?.name ?? 'All categories'),
-                selected: category != null,
-                showCheckmark: false,
-                onSelected: (_) async {
-                  if (category != null) {
-                    onChanged(filter.copyWith(categoryId: null));
-                    return;
-                  }
-                  final picked = await pickCategory(context, kind: filter.kind);
+              // Balances the filter button so the period stays centred.
+              const SizedBox(width: 48),
+              Expanded(
+                child: Center(
+                  child: PeriodSwitcher(
+                    label: filter.periodLabel,
+                    onPrevious: onPrevious,
+                    onNext: onNext,
+                    onTap: onPickPeriod,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Filter by category',
+                icon: const Icon(Icons.filter_list),
+                isSelected: category != null,
+                onPressed: () async {
+                  final picked = await pickCategory(context, kind: filter.kind, selectedId: filter.categoryId);
                   if (picked != null) onChanged(filter.copyWith(categoryId: picked.id));
                 },
-                onDeleted: category == null ? null : () => onChanged(filter.copyWith(categoryId: null)),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 4),
-      ],
+          if (category != null)
+            Chip(
+              avatar: EmojiGlyph(category.emoji, size: 14),
+              label: Text(category.name),
+              onDeleted: () => onChanged(filter.copyWith(categoryId: null)),
+              deleteButtonTooltipMessage: 'Clear filter',
+            ),
+        ],
+      ),
     );
   }
 }
@@ -298,74 +313,68 @@ class _TransactionList extends ConsumerWidget {
       items.addAll(byDay[day]!);
     }
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: ListView.builder(
-          padding: const EdgeInsets.only(bottom: 96),
-          itemCount: items.length + 1,
-          itemBuilder: (context, i) {
-            if (i == 0) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                child: Text(
-                  '${txns.length} transaction${txns.length == 1 ? '' : 's'} · '
-                  '${kind == TxKind.income ? 'Received' : 'Spent'} ${formatMoney(total)}',
-                  style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 96),
+      itemCount: items.length + 1,
+      itemBuilder: (context, i) {
+        if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Text(
+              '${txns.length} transaction${txns.length == 1 ? '' : 's'} · '
+              '${kind == TxKind.income ? 'Received' : 'Spent'} ${formatMoney(total)}',
+              style: context.text.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+            ),
+          );
+        }
+        final item = items[i - 1];
+        if (item is String) {
+          final date = parseYmd(item);
+          final dayTotal = byDay[item]!.map((t) => t.amountCents).sum;
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    date == today() ? 'Today' : formatDateLong(date),
+                    style: context.text.labelLarge?.copyWith(color: context.colors.primary),
+                  ),
                 ),
-              );
-            }
-            final item = items[i - 1];
-            if (item is String) {
-              final date = parseYmd(item);
-              final dayTotal = byDay[item]!.map((t) => t.amountCents).sum;
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        date == today() ? 'Today' : formatDateLong(date),
-                        style: context.text.labelLarge?.copyWith(color: context.colors.primary),
-                      ),
-                    ),
-                    Text(
-                      formatMoney(dayTotal),
-                      style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                  ],
+                Text(
+                  formatMoney(dayTotal),
+                  style: context.text.labelMedium?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
-              );
-            }
-            final t = item as Txn;
-            return Dismissible(
-              key: ValueKey(t.id),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                color: context.colors.errorContainer,
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 24),
-                child: Icon(Icons.delete_outline, color: context.colors.onErrorContainer),
-              ),
-              onDismissed: (_) {
-                final db = ref.read(databaseProvider);
-                db.deleteTransactions([t.id]);
-                showMessage(
-                  context,
-                  'Transaction deleted',
-                  action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreTransactions([t.id])),
-                );
-              },
-              child: TransactionTile(
-                txn: t,
-                category: categories[t.categoryId],
-                onTap: () => showTransactionForm(context, txn: t),
-              ),
+              ],
+            ),
+          );
+        }
+        final t = item as Txn;
+        return Dismissible(
+          key: ValueKey(t.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            color: context.colors.errorContainer,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 24),
+            child: Icon(Icons.delete_outline, color: context.colors.onErrorContainer),
+          ),
+          onDismissed: (_) {
+            final db = ref.read(databaseProvider);
+            db.deleteTransactions([t.id]);
+            showMessage(
+              context,
+              'Transaction deleted',
+              action: SnackBarAction(label: 'Undo', onPressed: () => db.restoreTransactions([t.id])),
             );
           },
-        ),
-      ),
+          child: TransactionTile(
+            txn: t,
+            category: categories[t.categoryId],
+            onTap: () => showTransactionForm(context, txn: t),
+          ),
+        );
+      },
     );
   }
 }

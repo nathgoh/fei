@@ -143,7 +143,7 @@ void main() {
   testWidgets('expenses and income each have a tab', (tester) async {
     final (db, _) = await pumpFei(tester, seed: seedMonth);
     await openTab(tester, 'Transactions');
-    await tester.tap(find.text('All categories'));
+    await tester.tap(find.byTooltip('Filter by category'));
     await settle(tester);
     await tester.tap(find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.text('Grocery')));
     await settle(tester);
@@ -154,7 +154,7 @@ void main() {
     expect(find.text(r'1 transaction · Received $4,000.00'), findsOneWidget);
     expect(find.text('Acme Corp'), findsOneWidget);
     expect(find.text('Costco'), findsNothing);
-    expect(find.text('All categories'), findsOneWidget, reason: 'an expense category filter is cleared');
+    expect(find.byTooltip('Clear filter'), findsNothing, reason: 'an expense category filter is cleared');
 
     // Adding from the Income tab starts an income.
     await tester.tap(find.byTooltip('Add income'));
@@ -178,8 +178,9 @@ void main() {
   testWidgets('filters by category', (tester) async {
     await pumpFei(tester, seed: seedMonth);
     await openTab(tester, 'Transactions');
-    await tester.tap(find.text('All categories'));
+    await tester.tap(find.byTooltip('Filter by category'));
     await settle(tester);
+    expectHintCentered(tester, 'Search categories');
     await tester.enterText(find.widgetWithText(TextField, 'Search categories'), 'dining');
     await settle(tester);
     await tester.tap(find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.text('Food & Dining')));
@@ -187,6 +188,11 @@ void main() {
     expect(find.text('Food & Dining'), findsWidgets, reason: 'the chip shows the chosen category');
     expect(find.text('Chipotle'), findsOneWidget);
     expect(find.text('Costco'), findsNothing);
+
+    await tester.tap(find.byTooltip('Clear filter'));
+    await settle(tester);
+    expect(find.byTooltip('Clear filter'), findsNothing);
+    expect(find.text('Costco'), findsOneWidget);
     await unmount(tester);
   });
 
