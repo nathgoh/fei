@@ -5,17 +5,17 @@ import '../../core/text.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 
-/// "Merchant" for spending, "Source" for income.
+/// Returns "Merchant" for an expense and "Source" for income.
 String merchantLabel(TxKind kind) => kind == TxKind.income ? 'Source' : 'Merchant';
 
-/// The error shown when the merchant field is left blank.
+/// Returns the error the merchant field shows when it is blank.
 String merchantMissingMessage(TxKind kind) => kind == TxKind.income ? 'Enter a source' : 'Enter a merchant';
 
-/// A merchant text field that suggests merchants already used for [kind],
-/// limited to [categoryId] when one is picked.
+/// A text field for the merchant that suggests merchants already used for [kind]. When [categoryId] is set, it only
+/// suggests that category's merchants.
 ///
-/// The field owns its text; [onChanged] reports every change, including a
-/// picked suggestion.
+/// The field keeps its own text controller. [onChanged] receives every change to the text, including a picked
+/// suggestion.
 class MerchantField extends ConsumerStatefulWidget {
   const MerchantField({
     super.key,
@@ -31,10 +31,10 @@ class MerchantField extends ConsumerStatefulWidget {
   final String initialValue;
   final ValueChanged<String> onChanged;
 
-  /// Decoration for the text field. The label comes from [merchantLabel].
+  /// Decorates the text field. The field replaces any labelText with [merchantLabel].
   final InputDecoration decoration;
 
-  /// The most suggestions shown at once.
+  /// The field shows at most this many suggestions at once.
   static const maxSuggestions = 8;
 
   @override
@@ -73,8 +73,8 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
   }
 
   Iterable<String> _options(List<String> suggestions, String text) {
-    // Saving normalizes the name, so a suggestion matching the typed text in
-    // all but case and spacing adds nothing.
+    // Saving runs the name through normalizeMerchant, so a suggestion that equals the typed text once normalized would
+    // save the same value. The filter leaves it out.
     final q = normalizeMerchant(text).toLowerCase();
     return suggestions
         .where((m) => m.toLowerCase() != q && m.toLowerCase().contains(q))
@@ -87,10 +87,9 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
         ref.watch(merchantSuggestionsProvider((kind: widget.kind, categoryId: widget.categoryId))).value ??
         const <String>[];
 
-    // RawAutocomplete only re-runs optionsBuilder when the text changes, so a
-    // new suggestion list (another category, or data that just loaded) gets a
-    // fresh RawAutocomplete. It sits beside the TextField rather than building
-    // it, so replacing it leaves the field and its focus alone.
+    // RawAutocomplete only calls optionsBuilder again when the text changes. A new suggestion list, from a new category
+    // or from data that just loaded, gets a new key, which replaces the RawAutocomplete. The RawAutocomplete sits
+    // beside the TextField instead of building it, so replacing it keeps the field's text and focus.
     final key = ValueKey(suggestions.join('\u0000'));
     if (key != _autocompleteKey) {
       _autocompleteKey = key;
@@ -122,8 +121,7 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
   }
 }
 
-/// Lets [MerchantField] ask its RawAutocomplete to re-run its options without
-/// changing the text.
+/// Notifies listeners without changing the text, so a new RawAutocomplete runs optionsBuilder for the current text.
 class _RefreshableController extends TextEditingController {
   _RefreshableController({super.text});
 

@@ -1,7 +1,5 @@
-/// Tidies a merchant (or income source) name so the same place is always
-/// written the same way: surrounding spaces dropped, inner runs of spaces
-/// collapsed, and each word capitalised with the rest lower case
-/// ("  trader JOE'S " → "Trader Joe's").
+/// Trims a merchant or income source name and collapses each run of spaces inside it into one space. Each word gets a
+/// capital first letter and lowercase for the rest, so "  trader JOE'S " becomes "Trader Joe's".
 String normalizeMerchant(String name) => name
     .trim()
     .split(RegExp(r'\s+'))

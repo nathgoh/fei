@@ -208,12 +208,11 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  /// Merchants (or, for income, sources) already used for [kind], for
-  /// autocomplete. With [categoryId], only that category's. Names that differ
-  /// only in case or spacing count as one, written as [normalizeMerchant]
-  /// does. Most used first, then most recently used. Recurring series count
-  /// as one use each, dated by their start, so a series that hasn't run yet
-  /// is still suggested.
+  /// Lists the merchants already used for [kind], for autocomplete. For income these are sources. When [categoryId] is
+  /// set, only that category's merchants are listed. Names that differ only in case or spacing merge into one entry,
+  /// written the way [normalizeMerchant] writes it. The list is ordered by use count, then by most recent use. Each
+  /// recurring series counts as one use on its start date, so a series that hasn't generated anything yet still
+  /// appears.
   Stream<List<String>> watchMerchants({required TxKind kind, String? categoryId}) {
     const filter = 'deleted_at IS NULL AND kind = ?1 AND (?2 IS NULL OR category_id = ?2)';
     return customSelect(
@@ -226,7 +225,7 @@ class AppDatabase extends _$AppDatabase {
       variables: [Variable.withString(kind.name), Variable<String>(categoryId)],
       readsFrom: {transactions, recurringSeriesTable},
     ).watch().map((rows) {
-      // Merged here rather than in SQL, whose LOWER() only folds ASCII.
+      // SQLite's LOWER() only lowercases ASCII letters, so the merge happens here in Dart instead of in the query.
       final merged = <String, ({int uses, String lastUsed})>{};
       for (final row in rows) {
         final name = normalizeMerchant(row.read<String>('merchant'));

@@ -6,13 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/app.dart';
 import '../support/db.dart';
 
-/// The merchant field, found by its label ('Merchant' or 'Source').
+/// Finds the merchant field by its label, which is 'Merchant' or 'Source'.
 Finder merchantField(String label) => find.widgetWithText(TextField, label);
 
-/// A row in the merchant suggestions.
+/// Finds the rows of the merchant suggestion list.
 final suggestionTile = find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(ListTile));
 
-/// The merchant suggestions on screen, top to bottom.
+/// Returns the merchant suggestions on screen, from top to bottom.
 List<String> suggestions(WidgetTester tester) =>
     tester.widgetList<ListTile>(suggestionTile).map((t) => (t.title! as Text).data!).toList();
 
@@ -76,7 +76,7 @@ void main() {
     expect(find.text('Enter a merchant'), findsOneWidget);
     expect(await dbRun(tester, db.transactionsBetween), isEmpty);
 
-    // Income calls it a source.
+    // For income, the field is labeled 'Source'.
     await tester.tap(find.text('Income'));
     await settle(tester);
     expect(merchantField('Source'), findsOneWidget);
@@ -84,7 +84,7 @@ void main() {
     await tester.tap(find.text('Expense'));
     await settle(tester);
 
-    // Whitespace doesn't count.
+    // A merchant made only of spaces still shows the error.
     await tester.enterText(find.byType(TextField).first, '10');
     await tester.enterText(merchantField('Merchant'), '   ');
     await tester.tap(find.text('Add transaction').last);
@@ -243,25 +243,25 @@ void main() {
     await tester.tap(find.byTooltip('Add transaction'));
     await settle(tester);
 
-    // Focused and empty: every expense merchant, most used first.
+    // The focused, empty field lists every expense merchant, most used first.
     await tester.tap(merchantField('Merchant'));
     await settle(tester);
     expect(suggestions(tester), ['Safeway', 'Chipotle', 'Costco']);
 
-    // Typing filters, ignoring case.
+    // Typing filters the list, and the match ignores case.
     await tester.enterText(merchantField('Merchant'), 'CO');
     await settle(tester);
     expect(suggestions(tester), ['Costco']);
     await tester.enterText(merchantField('Merchant'), '');
     await settle(tester);
 
-    // A category narrows them to that category's merchants.
+    // Picking a category limits the list to that category's merchants.
     await chooseCategory(tester, 'Grocery');
     await tester.tap(merchantField('Merchant'));
     await settle(tester);
     expect(suggestions(tester), ['Safeway', 'Costco']);
 
-    // Income suggests sources.
+    // With Income picked, the list shows income sources.
     await tester.tap(find.text('Income'));
     await settle(tester);
     await tester.tap(merchantField('Source'));
@@ -270,7 +270,7 @@ void main() {
     await tester.tap(find.text('Expense'));
     await settle(tester);
 
-    // Picking one fills the field, and doesn't touch the category.
+    // Picking a suggestion fills the field and leaves the category unchanged.
     await chooseCategory(tester, 'Grocery');
     await tester.enterText(merchantField('Merchant'), 'saf');
     await settle(tester);

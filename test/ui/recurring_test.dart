@@ -103,7 +103,8 @@ void main() {
     expect(merchant, findsOneWidget);
     expect(find.text('Notes (optional)'), findsOneWidget);
 
-    // Health's merchants, most used first (Gym has its series plus an occurrence).
+    // The list shows Health's merchants, most used first. Gym counts twice, once for its series and once for today's
+    // occurrence.
     await tester.enterText(merchant, '');
     await settle(tester);
     final suggestionTile = find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(ListTile));
@@ -120,7 +121,7 @@ void main() {
     await settle(tester);
     expect((await dbRun(tester, db.allRecurring)).map((s) => s.merchant), contains('Pharmacy'));
 
-    // An income series with no merchant asks for a source.
+    // The editor asks for a source when an income series has no merchant.
     await scrollTo(tester, find.text('Paycheck').last);
     await tester.tap(find.text('Paycheck').last);
     await settle(tester);

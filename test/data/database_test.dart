@@ -154,7 +154,8 @@ void main() {
 
   group('merchant suggestions', () {
     Future<void> seed() async {
-      // Costco: 3 uses, the oldest. Safeway and Trader Joe's: 2 each, Trader Joe's more recent.
+      // Costco has 3 uses, all older than the rest. Safeway and Trader Joe's have 2 uses each, and Trader Joe's was
+      // used more recently.
       for (final d in ['2026-01-01', '2026-01-02', '2026-01-03']) {
         await addTxn(db, category: 'Grocery', cents: 100, date: d, merchant: 'Costco');
       }
@@ -164,7 +165,8 @@ void main() {
       await addTxn(db, category: 'Grocery', cents: 100, date: '2026-03-02', merchant: "Trader Joe's");
       await addTxn(db, category: 'Food & Dining', cents: 100, date: '2026-03-05', merchant: 'Chipotle');
       await addTxn(db, category: 'Paycheck', cents: 100, date: '2026-03-01', merchant: 'Acme Corp');
-      // No merchant, or a blank one that bypassed saveTransaction's trimming.
+      // Neither of these two rows has a usable merchant. The first has none. The second has only spaces, inserted
+      // directly so saveTransaction can't trim it to null.
       await addTxn(db, category: 'Grocery', cents: 100, date: '2026-03-03');
       final grocery = await categoryNamed(db, 'Grocery');
       await db
@@ -214,7 +216,7 @@ void main() {
 
     test('treats names differing only in case or spacing as one, tidily written', () async {
       final grocery = await categoryNamed(db, 'Grocery');
-      // Raw inserts, as an import might leave them, bypassing the form's tidying.
+      // These rows are inserted directly, the way an import can leave them, so the form never normalizes them.
       for (final (name, date) in [
         ('COSTCO', '2026-01-01'),
         ('costco ', '2026-01-02'),
@@ -234,7 +236,7 @@ void main() {
               ),
             );
       }
-      // Costco and Safeway both have 2 uses; Safeway's last is more recent.
+      // Costco and Safeway have 2 uses each, and Safeway was used more recently.
       expect(await db.watchMerchants(kind: TxKind.expense).first, ['Safeway', 'Costco', "Trader Joe's"]);
     });
 
