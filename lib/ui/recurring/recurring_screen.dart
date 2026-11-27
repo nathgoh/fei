@@ -276,7 +276,7 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
               _merchant = v;
               _merchantMissing = false;
             }),
-            decoration: InputDecoration(errorText: _merchantMissing ? merchantMissingMessage(s.kind) : null),
+            missing: _merchantMissing,
           ),
           const SizedBox(height: 12),
           TextField(

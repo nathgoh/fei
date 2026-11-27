@@ -5,14 +5,8 @@ import '../../core/text.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 
-/// Returns "Merchant" for an expense and "Source" for income.
-String merchantLabel(TxKind kind) => kind == TxKind.income ? 'Source' : 'Merchant';
-
-/// Returns the error the merchant field shows when it is blank.
-String merchantMissingMessage(TxKind kind) => kind == TxKind.income ? 'Enter a source' : 'Enter a merchant';
-
 /// A text field for the merchant that suggests merchants already used for [kind]. When [categoryId] is set, it only
-/// suggests that category's merchants.
+/// suggests that category's merchants. For income the field is labelled "Source" instead of "Merchant".
 ///
 /// The field keeps its own text controller. [onChanged] receives every change to the text, including a picked
 /// suggestion.
@@ -23,7 +17,8 @@ class MerchantField extends ConsumerStatefulWidget {
     required this.categoryId,
     required this.initialValue,
     required this.onChanged,
-    required this.decoration,
+    required this.missing,
+    this.prefixIcon,
   });
 
   final TxKind kind;
@@ -31,8 +26,9 @@ class MerchantField extends ConsumerStatefulWidget {
   final String initialValue;
   final ValueChanged<String> onChanged;
 
-  /// Decorates the text field. The field replaces any labelText with [merchantLabel].
-  final InputDecoration decoration;
+  /// Whether to show the error asking for a merchant, or for a source on income.
+  final bool missing;
+  final Widget? prefixIcon;
 
   /// The field shows at most this many suggestions at once.
   static const maxSuggestions = 8;
@@ -44,13 +40,12 @@ class MerchantField extends ConsumerStatefulWidget {
 class _MerchantFieldState extends ConsumerState<MerchantField> {
   late final _controller = _RefreshableController(text: widget.initialValue);
   final _focus = FocusNode(debugLabel: 'merchant');
-  String _lastText = '';
+  late String _lastText = widget.initialValue;
   ValueKey<String>? _autocompleteKey;
 
   @override
   void initState() {
     super.initState();
-    _lastText = _controller.text;
     _controller.addListener(_onText);
     _focus.addListener(_onFocus);
   }
@@ -103,6 +98,7 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
       }
     }
 
+    final noun = widget.kind == TxKind.income ? 'Source' : 'Merchant';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -110,7 +106,11 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
           controller: _controller,
           focusNode: _focus,
           textCapitalization: TextCapitalization.words,
-          decoration: widget.decoration.copyWith(labelText: merchantLabel(widget.kind)),
+          decoration: InputDecoration(
+            labelText: noun,
+            prefixIcon: widget.prefixIcon,
+            errorText: widget.missing ? 'Enter a ${noun.toLowerCase()}' : null,
+          ),
         ),
         RawAutocomplete<String>(
           key: key,

@@ -1,6 +1,7 @@
 -- Fei schema for PostgreSQL. Mirrors the app's local SQLite schema (drift
 -- schema v2), so rows sync across without reshaping. When a drift migration
 -- changes lib/data/tables.dart, change this file to match.
+-- test/drift/fei/server_schema_test.dart fails until the two agree.
 --
 -- * ids are UUID v7s generated on the device, so the server never assigns them.
 -- * updated_at is bumped on every write; deleted_at marks soft deletes.
@@ -56,7 +57,7 @@ CREATE TABLE transactions (
   amount_cents  bigint      NOT NULL CHECK (amount_cents >= 0), -- always positive; kind gives the direction
   date          date        NOT NULL,
   category_id   uuid        NOT NULL REFERENCES categories (id) DEFERRABLE INITIALLY DEFERRED,
-  merchant      text,
+  merchant      text,       -- the source on an income row; imports can leave it empty
   notes         text,
   recurring_id  uuid        REFERENCES recurring_series (id) DEFERRABLE INITIALLY DEFERRED
 );
