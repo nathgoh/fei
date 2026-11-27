@@ -378,6 +378,8 @@ class _CategoryPickerState extends ConsumerState<_CategoryPicker> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: TextField(
+              // A filled field puts its text at the top by default, which sits it above the taller search icon.
+              textAlignVertical: TextAlignVertical.center,
               decoration: const InputDecoration(hintText: 'Search categories', prefixIcon: Icon(Icons.search)),
               onChanged: (v) => setState(() => _query = v),
             ),

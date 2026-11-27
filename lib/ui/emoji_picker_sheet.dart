@@ -106,6 +106,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: TextField(
+                    // A filled field puts its text at the top by default, which sits it above the taller search icon.
+                    textAlignVertical: TextAlignVertical.center,
                     decoration: const InputDecoration(hintText: 'Search emoji', prefixIcon: Icon(Icons.search)),
                     onChanged: _search,
                   ),

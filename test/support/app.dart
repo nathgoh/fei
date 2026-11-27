@@ -78,3 +78,13 @@ Future<void> scrollTo(WidgetTester tester, Finder finder) async {
   );
   await settle(tester);
 }
+
+/// Checks that the search field showing [hint] centers the hint vertically, level with its search icon.
+void expectHintCentered(WidgetTester tester, String hint) {
+  final field = find.widgetWithText(TextField, hint);
+  final box = tester.getRect(find.descendant(of: field, matching: find.byType(InputDecorator)));
+  final text = tester.getRect(find.descendant(of: field, matching: find.text(hint)));
+  final icon = tester.getRect(find.descendant(of: field, matching: find.byIcon(Icons.search)));
+  expect(text.center.dy, moreOrLessEquals(box.center.dy, epsilon: 0.5));
+  expect(text.center.dy, moreOrLessEquals(icon.center.dy, epsilon: 0.5));
+}

@@ -143,6 +143,7 @@ void main() {
     // Inset the same as the app's other sheets.
     expect(field.left - sheet.left, 16);
     expect(sheet.right - field.right, 16);
+    expectHintCentered(tester, 'Search emoji');
 
     void expectGridAligned() {
       final cells = find.descendant(of: find.byType(EmojiPickerSheet), matching: find.byType(EmojiCell));
