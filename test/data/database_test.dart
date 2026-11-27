@@ -201,15 +201,41 @@ void main() {
       final costco = (await db.transactionsBetween()).where((t) => t.merchant == 'Costco').map((t) => t.id);
       await db.deleteTransactions(costco);
       await addSeries(db, category: 'Rent', cents: 200000, start: '2026-04-01', merchant: 'Landlord');
-      await addSeries(db, category: 'Health', cents: 4500, start: '2026-04-01', merchant: 'Old gym');
-      final oldGym = (await db.allRecurring()).firstWhere((s) => s.merchant == 'Old gym');
+      await addSeries(db, category: 'Health', cents: 4500, start: '2026-04-01', merchant: 'Old Gym');
+      final oldGym = (await db.allRecurring()).firstWhere((s) => s.merchant == 'Old Gym');
       await db.deleteSeries(oldGym.id, deleteTransactions: true);
 
       final all = await db.watchMerchants(kind: TxKind.expense).first;
       expect(all, isNot(contains('Costco')));
-      expect(all, isNot(contains('Old gym')));
+      expect(all, isNot(contains('Old Gym')));
       final rent = await categoryNamed(db, 'Rent');
       expect(await db.watchMerchants(kind: TxKind.expense, categoryId: rent.id).first, ['Landlord']);
+    });
+
+    test('treats names differing only in case or spacing as one, tidily written', () async {
+      final grocery = await categoryNamed(db, 'Grocery');
+      // Raw inserts, as an import might leave them, bypassing the form's tidying.
+      for (final (name, date) in [
+        ('COSTCO', '2026-01-01'),
+        ('costco ', '2026-01-02'),
+        ('  trader   JOE\'S', '2026-03-01'),
+        ('Safeway', '2026-02-01'),
+        ('safeway', '2026-02-02'),
+      ]) {
+        await db
+            .into(db.transactions)
+            .insert(
+              TransactionsCompanion.insert(
+                kind: TxKind.expense,
+                amountCents: 100,
+                date: date,
+                categoryId: grocery.id,
+                merchant: Value(name),
+              ),
+            );
+      }
+      // Costco and Safeway both have 2 uses; Safeway's last is more recent.
+      expect(await db.watchMerchants(kind: TxKind.expense).first, ['Safeway', 'Costco', "Trader Joe's"]);
     });
 
     test('emits again when a new merchant is saved', () async {

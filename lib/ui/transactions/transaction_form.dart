@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../core/text.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../theme.dart';
@@ -97,7 +98,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           kind: _kind,
           amountCents: cents.abs(),
           categoryId: _categoryId!,
-          merchant: _merchant,
+          merchant: normalizeMerchant(_merchant),
           notes: _notes.text,
           frequency: _frequency,
           startDate: ymd(_date),
@@ -110,7 +111,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           amountCents: cents.abs(),
           date: ymd(_date),
           categoryId: _categoryId!,
-          merchant: _merchant,
+          merchant: normalizeMerchant(_merchant),
           notes: _notes.text,
         );
       }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../core/text.dart';
 import '../../data/database.dart';
 import '../../domain/analytics.dart';
 import '../../state/providers.dart';
@@ -186,7 +187,7 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
           s.id,
           amountCents: cents.abs(),
           categoryId: _categoryId,
-          merchant: _merchant,
+          merchant: normalizeMerchant(_merchant),
           notes: _notes.text,
           endDate: _endDate == null ? null : ymd(_endDate!),
           applyToPast: _applyToPast,

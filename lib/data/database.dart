@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../core/dates.dart';
+import '../core/text.dart';
 import 'database.steps.dart';
 import 'seed.dart';
 import 'tables.dart';
@@ -208,9 +209,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Merchants (or, for income, sources) already used for [kind], for
-  /// autocomplete. With [categoryId], only that category's. Most used first,
-  /// then most recently used. Recurring series count as one use each, dated
-  /// by their start, so a series that hasn't run yet is still suggested.
+  /// autocomplete. With [categoryId], only that category's. Names that differ
+  /// only in case or spacing count as one, written as [normalizeMerchant]
+  /// does. Most used first, then most recently used. Recurring series count
+  /// as one use each, dated by their start, so a series that hasn't run yet
+  /// is still suggested.
   Stream<List<String>> watchMerchants({required TxKind kind, String? categoryId}) {
     const filter = 'deleted_at IS NULL AND kind = ?1 AND (?2 IS NULL OR category_id = ?2)';
     return customSelect(
@@ -219,11 +222,28 @@ class AppDatabase extends _$AppDatabase {
       '  UNION ALL'
       '  SELECT TRIM(merchant), start_date FROM recurring_series WHERE $filter'
       ") WHERE merchant IS NOT NULL AND merchant <> ''"
-      ' GROUP BY merchant'
-      ' ORDER BY uses DESC, last_used DESC, merchant',
+      ' GROUP BY merchant',
       variables: [Variable.withString(kind.name), Variable<String>(categoryId)],
       readsFrom: {transactions, recurringSeriesTable},
-    ).map((row) => row.read<String>('merchant')).watch();
+    ).watch().map((rows) {
+      // Merged here rather than in SQL, whose LOWER() only folds ASCII.
+      final merged = <String, ({int uses, String lastUsed})>{};
+      for (final row in rows) {
+        final name = normalizeMerchant(row.read<String>('merchant'));
+        final uses = row.read<int>('uses');
+        final lastUsed = row.read<String>('last_used');
+        final seen = merged[name];
+        merged[name] = seen == null
+            ? (uses: uses, lastUsed: lastUsed)
+            : (uses: seen.uses + uses, lastUsed: lastUsed.compareTo(seen.lastUsed) > 0 ? lastUsed : seen.lastUsed);
+      }
+      return merged.keys.toList()..sort((a, b) {
+        final x = merged[a]!, y = merged[b]!;
+        if (x.uses != y.uses) return y.uses.compareTo(x.uses);
+        final byDate = y.lastUsed.compareTo(x.lastUsed);
+        return byDate != 0 ? byDate : a.compareTo(b);
+      });
+    });
   }
 
   Future<void> deleteTransactions(Iterable<String> ids) => (update(

@@ -183,6 +183,31 @@ void main() {
     await unmount(tester);
   });
 
+  testWidgets('saves the merchant trimmed and capitalised, matching past ones whatever the case', (tester) async {
+    final (db, _) = await pumpFei(tester, seed: seedMonth);
+    await openTab(tester, 'Transactions');
+    await tester.tap(find.byTooltip('Add transaction'));
+    await settle(tester);
+    await tester.enterText(find.byType(TextField).first, '7');
+    await chooseCategory(tester, 'Grocery');
+    await tester.enterText(merchantField('Merchant'), 'cost');
+    await settle(tester);
+    expect(suggestions(tester), ['Costco'], reason: 'matching ignores case');
+    await tester.enterText(merchantField('Merchant'), '  COSTCO  ');
+    await settle(tester);
+    expect(suggestions(tester), isEmpty, reason: 'the typed name already is that merchant');
+    await tester.tap(find.text('Add transaction').last);
+    await settle(tester);
+
+    final added = (await dbRun(tester, db.transactionsBetween)).firstWhere((t) => t.amountCents == 700);
+    expect(added.merchant, 'Costco');
+    expect(await dbRun(tester, () => db.watchMerchants(kind: TxKind.expense).first), [
+      'Costco',
+      'Chipotle',
+    ], reason: 'merged into the existing Costco, now used twice');
+    await unmount(tester);
+  });
+
   testWidgets('editing a transaction without a merchant asks for one', (tester) async {
     final (db, _) = await pumpFei(
       tester,

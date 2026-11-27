@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/text.dart';
 import '../../data/database.dart';
 import '../../state/providers.dart';
 
@@ -72,8 +73,12 @@ class _MerchantFieldState extends ConsumerState<MerchantField> {
   }
 
   Iterable<String> _options(List<String> suggestions, String text) {
-    final q = text.trim().toLowerCase();
-    return suggestions.where((m) => m != text && m.toLowerCase().contains(q)).take(MerchantField.maxSuggestions);
+    // Saving normalizes the name, so a suggestion matching the typed text in
+    // all but case and spacing adds nothing.
+    final q = normalizeMerchant(text).toLowerCase();
+    return suggestions
+        .where((m) => m.toLowerCase() != q && m.toLowerCase().contains(q))
+        .take(MerchantField.maxSuggestions);
   }
 
   @override
