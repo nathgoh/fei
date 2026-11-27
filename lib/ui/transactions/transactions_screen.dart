@@ -102,7 +102,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
 
   void _shiftMonth(int delta) {
     final f = _filter;
-    if (f.year == null) return;
     if (f.month == null) {
       _set(f.copyWith(year: f.year! + delta));
     } else {

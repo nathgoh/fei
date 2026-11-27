@@ -317,11 +317,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
 }
 
 class _PickerField extends StatelessWidget {
-  const _PickerField({required this.label, required this.value, required this.onTap, this.leading, this.trailing});
+  const _PickerField({
+    required this.label,
+    required this.value,
+    required this.onTap,
+    required this.leading,
+    this.trailing,
+  });
   final String label;
   final String value;
   final VoidCallback onTap;
-  final Widget? leading;
+  final Widget leading;
   final Widget? trailing;
 
   @override
@@ -332,7 +338,7 @@ class _PickerField extends StatelessWidget {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: leading == null ? null : Padding(padding: const EdgeInsets.all(8), child: leading),
+          prefixIcon: Padding(padding: const EdgeInsets.all(8), child: leading),
           suffixIcon: trailing ?? const Icon(Icons.expand_more),
         ),
         child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -341,8 +347,8 @@ class _PickerField extends StatelessWidget {
   }
 }
 
-/// Lets the user choose a category (of [kind], if given), grouped Monarch-style.
-Future<Category?> pickCategory(BuildContext context, {TxKind? kind, String? selectedId}) {
+/// Lets the user choose a category of [kind], grouped Monarch-style.
+Future<Category?> pickCategory(BuildContext context, {required TxKind kind, String? selectedId}) {
   return showModalBottomSheet<Category>(
     context: context,
     isScrollControlled: true,
@@ -354,7 +360,7 @@ Future<Category?> pickCategory(BuildContext context, {TxKind? kind, String? sele
 
 class _CategoryPicker extends ConsumerStatefulWidget {
   const _CategoryPicker({required this.kind, this.selectedId});
-  final TxKind? kind;
+  final TxKind kind;
   final String? selectedId;
 
   @override
@@ -388,7 +394,7 @@ class _CategoryPickerState extends ConsumerState<_CategoryPicker> {
             child: ListView(
               controller: controller,
               children: [
-                for (final g in groups.where((g) => widget.kind == null || g.kind == widget.kind)) ...[
+                for (final g in groups.where((g) => g.kind == widget.kind)) ...[
                   if (categories.any((c) => c.groupId == g.id && c.name.toLowerCase().contains(q)))
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),

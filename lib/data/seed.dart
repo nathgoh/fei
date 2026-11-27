@@ -47,7 +47,7 @@ const defaultGroups = [
 /// Looks up a default's styling by (case-insensitive) name, used when
 /// importing categories from the web app.
 SeedCategory? defaultCategoryNamed(String name) {
-  final wanted = name.trim().toLowerCase();
+  final wanted = name.toLowerCase();
   for (final g in defaultGroups) {
     for (final c in g.categories) {
       if (c.name.toLowerCase() == wanted) return c;

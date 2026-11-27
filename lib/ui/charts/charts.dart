@@ -141,9 +141,9 @@ class SpendingComparisonChart extends StatelessWidget {
 
 /// Income vs. expenses for each month of a year.
 class MonthlyCashFlowChart extends StatelessWidget {
-  const MonthlyCashFlowChart({super.key, required this.months, this.onMonthTap});
+  const MonthlyCashFlowChart({super.key, required this.months, required this.onMonthTap});
   final List<MonthTotals> months;
-  final ValueChanged<int>? onMonthTap;
+  final ValueChanged<int> onMonthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +160,7 @@ class MonthlyCashFlowChart extends StatelessWidget {
           barTouchData: BarTouchData(
             touchCallback: (event, response) {
               final group = response?.spot?.touchedBarGroupIndex;
-              if (event is FlTapUpEvent && group != null) onMonthTap?.call(group + 1);
+              if (event is FlTapUpEvent && group != null) onMonthTap(group + 1);
             },
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => context.colors.surfaceContainerHighest,
@@ -199,10 +199,10 @@ class MonthlyCashFlowChart extends StatelessWidget {
 
 /// Spending in one category, month by month.
 class CategoryTrendChart extends StatelessWidget {
-  const CategoryTrendChart({super.key, required this.monthlyCents, required this.color, this.average});
+  const CategoryTrendChart({super.key, required this.monthlyCents, required this.color, required this.average});
   final List<int> monthlyCents; // 12 entries
   final Color color;
-  final int? average;
+  final int average;
 
   @override
   Widget build(BuildContext context) {
@@ -216,18 +216,16 @@ class CategoryTrendChart extends StatelessWidget {
           gridData: _grid(context, interval),
           borderData: FlBorderData(show: false),
           titlesData: _titles(context, interval: interval, bottom: (v) => Text(monthShort(v.toInt() + 1)[0])),
-          extraLinesData: average == null
-              ? null
-              : ExtraLinesData(
-                  horizontalLines: [
-                    HorizontalLine(
-                      y: average!.toDouble(),
-                      color: context.colors.onSurfaceVariant,
-                      strokeWidth: 1,
-                      dashArray: [4, 4],
-                    ),
-                  ],
-                ),
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [
+              HorizontalLine(
+                y: average.toDouble(),
+                color: context.colors.onSurfaceVariant,
+                strokeWidth: 1,
+                dashArray: [4, 4],
+              ),
+            ],
+          ),
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => context.colors.surfaceContainerHighest,

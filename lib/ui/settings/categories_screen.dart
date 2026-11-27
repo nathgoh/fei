@@ -218,7 +218,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
   late String _emoji = widget.category?.emoji ?? '🏷️';
   late int _color = widget.category?.color ?? _palette.first;
   late bool _fixed = widget.category?.isFixed ?? false;
-  late String? _groupId = widget.category?.groupId ?? widget.groupId;
+  late String _groupId = widget.category?.groupId ?? widget.groupId!;
 
   @override
   void dispose() {
@@ -228,7 +228,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    if (name.isEmpty || _groupId == null) return;
+    if (name.isEmpty) return;
     final existing = ref.read(categoriesProvider).value ?? const [];
     final duplicate = existing.any(
       (c) => c.id != widget.category?.id && c.kind == widget.kind && c.name.toLowerCase() == name.toLowerCase(),
@@ -241,7 +241,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
     if (widget.category == null) {
       await db.addCategory(
         name: name,
-        groupId: _groupId!,
+        groupId: _groupId,
         kind: widget.kind,
         emoji: _emoji,
         color: _color,
@@ -255,7 +255,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
           emoji: Value(_emoji),
           color: Value(_color),
           isFixed: Value(_fixed),
-          groupId: Value(_groupId!),
+          groupId: Value(_groupId),
         ),
       );
     }
@@ -384,7 +384,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                       child: Text(g.name, overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (v) => setState(() => _groupId = v),
+                onChanged: (v) => setState(() => _groupId = v!),
               ),
               const SizedBox(height: 20),
               Text('Chart color', style: context.text.labelLarge),

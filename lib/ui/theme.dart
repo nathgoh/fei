@@ -89,7 +89,7 @@ ColorScheme buildColorScheme({Color accent = defaultAccent, ThemeStyle theme = T
 
 ThemeData buildTheme({Color accent = defaultAccent, ThemeStyle theme = ThemeStyle.tinted}) {
   final scheme = buildColorScheme(accent: accent, theme: theme);
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: scheme.brightness);
+  final base = ThemeData(colorScheme: scheme, brightness: scheme.brightness);
   return base.copyWith(
     scaffoldBackgroundColor: scheme.surface,
     appBarTheme: AppBarTheme(

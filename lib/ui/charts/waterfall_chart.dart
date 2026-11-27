@@ -43,7 +43,6 @@ class _CashFlowWaterfallChartState extends State<CashFlowWaterfallChart> {
             cents: s.incomeCents,
             amountColor: context.incomeColor,
             caption: s.incomeByCategory.length > 1 ? '${s.incomeByCategory.length} sources' : null,
-            span: (start: 0, end: s.incomeCents),
             total: s.flowTotal,
             parts: s.incomeByCategory,
             partsTitle: 'Income sources',
@@ -65,7 +64,6 @@ class _CashFlowWaterfallChartState extends State<CashFlowWaterfallChart> {
             title: 'Expenses',
             cents: s.expenseCents,
             caption: s.spentShare == null ? null : '${formatPercent(s.spentShare!)} of income',
-            span: (start: 0, end: s.expenseCents),
             total: s.expenseCents,
             parts: s.expenseByCategory,
             partsTitle: 'Expense categories',
@@ -86,7 +84,6 @@ class _FlowGroup extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.cents,
-    required this.span,
     required this.total,
     required this.parts,
     required this.partsTitle,
@@ -100,7 +97,6 @@ class _FlowGroup extends StatelessWidget {
   final int cents;
   final String? caption;
   final Color? amountColor;
-  final _Span span;
   final int total;
   final List<CategoryTotal> parts;
   final String partsTitle;
@@ -170,7 +166,7 @@ class _FlowGroup extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: _AxisBar(
-                      span: span,
+                      span: (start: 0, end: cents),
                       total: total,
                       height: 12,
                       segments: [for (final p in parts) (cents: p.cents, color: Color(p.category.color))],
