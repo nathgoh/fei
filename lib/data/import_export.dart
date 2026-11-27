@@ -242,8 +242,6 @@ Future<void> _importRecurringSeries(
 // CSV
 // -----------------------------------------------------------------------------
 
-const csvHeader = ['Date', 'Type', 'Category', 'Group', 'Amount', 'Merchant', 'Notes', 'Recurring'];
-
 /// Exports transactions (optionally just one year) as CSV in the same format
 /// [importCsv] reads.
 Future<String> exportCsv(AppDatabase db, {int? year}) async {
@@ -253,7 +251,9 @@ Future<String> exportCsv(AppDatabase db, {int? year}) async {
   );
   final categories = {for (final c in await db.allCategories()) c.id: c};
   final groups = {for (final g in await db.allGroups()) g.id: g};
-  final rows = <List<Object?>>[csvHeader];
+  final rows = <List<Object?>>[
+    ['Date', 'Type', 'Category', 'Group', 'Amount', 'Merchant', 'Notes', 'Recurring'],
+  ];
   for (final t in txns.reversed) {
     final c = categories[t.categoryId];
     rows.add([

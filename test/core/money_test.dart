@@ -27,13 +27,10 @@ void main() {
     expect(centsFromNum(1800), 180000);
   });
 
-  test('formatMoney and formatSigned', () {
+  test('formatMoney', () {
     expect(formatMoney(0), r'$0.00');
     expect(formatMoney(123456), r'$1,234.56');
     expect(formatMoney(-500), r'-$5.00');
-    expect(formatSigned(500), r'+$5.00');
-    expect(formatSigned(-500), r'-$5.00');
-    expect(formatSigned(0), r'$0.00');
   });
 
   test('formatCompact for chart axes', () {

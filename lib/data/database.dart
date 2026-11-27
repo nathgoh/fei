@@ -190,7 +190,6 @@ class AppDatabase extends _$AppDatabase {
     required String categoryId,
     String? merchant,
     String? notes,
-    String? recurringId,
   }) async {
     final companion = TransactionsCompanion(
       kind: Value(kind),
@@ -202,7 +201,7 @@ class AppDatabase extends _$AppDatabase {
       updatedAt: Value(_now),
     );
     if (id == null) {
-      await into(transactions).insert(companion.copyWith(id: Value(newId()), recurringId: Value(recurringId)));
+      await into(transactions).insert(companion.copyWith(id: Value(newId())));
     } else {
       await (update(transactions)..where((t) => t.id.equals(id))).write(companion);
     }

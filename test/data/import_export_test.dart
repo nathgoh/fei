@@ -150,8 +150,7 @@ void main() {
       await addTxn(db, category: 'Grocery', cents: 1250, date: '2026-01-05', merchant: 'Costco', notes: 'Milk, eggs');
       await addTxn(db, category: 'Paycheck', cents: 400000, date: '2026-01-02');
       final lines = (await exportCsv(db)).split('\n');
-      expect(csvHeader, ['Date', 'Type', 'Category', 'Group', 'Amount', 'Merchant', 'Notes', 'Recurring']);
-      expect(lines[0], csvHeader.join(','));
+      expect(lines[0], 'Date,Type,Category,Group,Amount,Merchant,Notes,Recurring');
       expect(lines[1], '2026-01-02,Income,Paycheck,Income,4000.00,,,');
       expect(lines[2], '2026-01-05,Expense,Grocery,Food & Drink,12.50,Costco,"Milk, eggs",');
     });

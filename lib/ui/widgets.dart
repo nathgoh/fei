@@ -28,17 +28,16 @@ class CategoryAvatar extends StatelessWidget {
 
 /// An amount colored by direction: income green with a `+`, expenses plain.
 class AmountText extends StatelessWidget {
-  const AmountText(this.cents, this.kind, {super.key, this.style});
+  const AmountText(this.cents, this.kind, {super.key});
   final int cents;
   final TxKind kind;
-  final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
     final isIncome = kind == TxKind.income;
     return Text(
       isIncome ? '+${formatMoney(cents)}' : formatMoney(cents),
-      style: (style ?? context.text.bodyLarge)?.copyWith(
+      style: context.text.bodyLarge?.copyWith(
         color: isIncome ? context.incomeColor : null,
         fontWeight: FontWeight.w600,
         fontFeatures: const [FontFeature.tabularFigures()],
@@ -149,11 +148,10 @@ class TileGrid extends StatelessWidget {
 }
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.icon, required this.title, this.message, this.action});
+  const EmptyState({super.key, required this.icon, required this.title, this.message});
   final IconData icon;
   final String title;
   final String? message;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +172,6 @@ class EmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),
@@ -267,7 +264,7 @@ class AsyncView<T> extends StatelessWidget {
 }
 
 /// A one-line transaction row used across screens.
-class TransactionTile extends ConsumerWidget {
+class TransactionTile extends StatelessWidget {
   const TransactionTile({super.key, required this.txn, required this.category, this.onTap, this.showDate = false});
   final Txn txn;
   final Category? category;
@@ -275,7 +272,7 @@ class TransactionTile extends ConsumerWidget {
   final bool showDate;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final title = txn.merchant ?? txn.notes ?? category?.name ?? 'Uncategorized';
     final subtitle = [
       if (showDate) formatDateShort(parseYmd(txn.date)),

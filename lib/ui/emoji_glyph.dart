@@ -75,7 +75,7 @@ class EmojiInk extends ChangeNotifier {
     try {
       offset = await _measureInk(emoji);
     } catch (_) {
-      offset = null; // a failed measurement just leaves the glyph unshifted
+      // A failed measurement just leaves the glyph unshifted.
     }
     if (generation != _generation) return; // fonts changed while measuring
     _measuring.remove(emoji);
@@ -126,10 +126,11 @@ class EmojiInk extends ChangeNotifier {
 }
 
 /// The smallest rectangle holding every pixel of an RGBA image whose alpha
-/// is above [threshold], or null if there are none. The threshold skips the
-/// faint edge pixels left by anti-aliasing.
+/// is above 24, or null if there are none. The threshold skips the faint
+/// edge pixels left by anti-aliasing.
 @visibleForTesting
-Rect? inkBounds(Uint8List rgba, int width, int height, {int threshold = 24}) {
+Rect? inkBounds(Uint8List rgba, int width, int height) {
+  const threshold = 24;
   var left = width, top = height, right = -1, bottom = -1;
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {

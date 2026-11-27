@@ -6,9 +6,6 @@ final _compact = NumberFormat.compactCurrency(locale: 'en_US', symbol: r'$');
 /// `$1,234.56`. Negative values render as `-$1,234.56`.
 String formatMoney(int cents) => _currency.format(cents / 100);
 
-/// `+$1,234.56` / `-$1,234.56`.
-String formatSigned(int cents) => cents > 0 ? '+${formatMoney(cents)}' : formatMoney(cents);
-
 /// `$1.2K` style, for chart axes.
 String formatCompact(num cents) => _compact.format(cents / 100);
 
