@@ -9,6 +9,7 @@ import '../../data/database.dart';
 import '../../state/providers.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'merchant_field.dart';
 
 /// Opens the add/edit transaction sheet. With [startRecurring] the "Repeat"
 /// option starts switched on.
@@ -44,7 +45,7 @@ class _TransactionForm extends ConsumerStatefulWidget {
 class _TransactionFormState extends ConsumerState<_TransactionForm> {
   late TxKind _kind;
   late final TextEditingController _amount;
-  late final TextEditingController _merchant;
+  late String _merchant;
   late final TextEditingController _notes;
   late DateTime _date;
   String? _categoryId;
@@ -52,6 +53,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   Frequency _frequency = Frequency.monthly;
   DateTime? _endDate;
   String? _amountError;
+  bool _merchantMissing = false;
   bool _saving = false;
 
   bool get _editing => widget.txn != null;
@@ -62,7 +64,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final t = widget.txn;
     _kind = t?.kind ?? TxKind.expense;
     _amount = TextEditingController(text: t == null ? '' : (t.amountCents / 100).toStringAsFixed(2));
-    _merchant = TextEditingController(text: t?.merchant ?? '');
+    _merchant = t?.merchant ?? '';
     _notes = TextEditingController(text: t?.notes ?? '');
     _date = t == null ? today() : parseYmd(t.date);
     _categoryId = t?.categoryId;
@@ -72,17 +74,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   @override
   void dispose() {
     _amount.dispose();
-    _merchant.dispose();
     _notes.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final cents = parseCents(_amount.text);
-    if (cents == null || cents == 0) {
-      setState(() => _amountError = 'Enter an amount');
-      return;
-    }
+    final cents = parseCents(_amount.text) ?? 0;
+    setState(() {
+      _amountError = cents == 0 ? 'Enter an amount' : null;
+      _merchantMissing = _merchant.trim().isEmpty;
+    });
+    if (_amountError != null || _merchantMissing) return;
     if (_categoryId == null) {
       showMessage(context, 'Pick a category');
       return;
@@ -95,7 +97,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           kind: _kind,
           amountCents: cents.abs(),
           categoryId: _categoryId!,
-          merchant: _merchant.text,
+          merchant: _merchant,
           notes: _notes.text,
           frequency: _frequency,
           startDate: ymd(_date),
@@ -108,7 +110,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           amountCents: cents.abs(),
           date: ymd(_date),
           categoryId: _categoryId!,
-          merchant: _merchant.text,
+          merchant: _merchant,
           notes: _notes.text,
         );
       }
@@ -215,12 +217,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             onTap: () => _pickDate(end: false),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _merchant,
-            textCapitalization: TextCapitalization.words,
+          MerchantField(
+            kind: _kind,
+            categoryId: _categoryId,
+            initialValue: _merchant,
+            onChanged: (v) => setState(() {
+              _merchant = v;
+              _merchantMissing = false;
+            }),
             decoration: InputDecoration(
-              labelText: _kind == TxKind.income ? 'Payer (optional)' : 'Merchant (optional)',
               prefixIcon: const Icon(Icons.storefront_outlined),
+              errorText: _merchantMissing ? merchantMissingMessage(_kind) : null,
             ),
           ),
           const SizedBox(height: 12),
@@ -229,7 +236,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             textCapitalization: TextCapitalization.sentences,
             minLines: 1,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Notes', prefixIcon: Icon(Icons.notes)),
+            decoration: const InputDecoration(labelText: 'Notes (optional)', prefixIcon: Icon(Icons.notes)),
           ),
           if (_editing && widget.txn!.recurringId != null) ...[
             const SizedBox(height: 12),

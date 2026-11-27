@@ -9,6 +9,7 @@ import '../../data/database.dart';
 import '../../domain/analytics.dart';
 import '../../state/providers.dart';
 import '../theme.dart';
+import '../transactions/merchant_field.dart';
 import '../transactions/transaction_form.dart';
 import '../widgets.dart';
 
@@ -153,7 +154,8 @@ class _SeriesEditor extends ConsumerStatefulWidget {
 
 class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
   late final _amount = TextEditingController(text: (widget.series.amountCents / 100).toStringAsFixed(2));
-  late final _merchant = TextEditingController(text: widget.series.merchant ?? '');
+  late String _merchant = widget.series.merchant ?? '';
+  bool _merchantMissing = false;
   late final _notes = TextEditingController(text: widget.series.notes ?? '');
   late String _categoryId = widget.series.categoryId;
   late DateTime? _endDate = widget.series.endDate == null ? null : parseYmd(widget.series.endDate!);
@@ -164,7 +166,6 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
   @override
   void dispose() {
     _amount.dispose();
-    _merchant.dispose();
     _notes.dispose();
     super.dispose();
   }
@@ -175,13 +176,17 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
       showMessage(context, 'Enter an amount');
       return;
     }
+    if (_merchant.trim().isEmpty) {
+      setState(() => _merchantMissing = true);
+      return;
+    }
     await ref
         .read(databaseProvider)
         .updateSeries(
           s.id,
           amountCents: cents.abs(),
           categoryId: _categoryId,
-          merchant: _merchant.text,
+          merchant: _merchant,
           notes: _notes.text,
           endDate: _endDate == null ? null : ymd(_endDate!),
           applyToPast: _applyToPast,
@@ -262,14 +267,20 @@ class _SeriesEditorState extends ConsumerState<_SeriesEditor> {
             },
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _merchant,
-            decoration: const InputDecoration(labelText: 'Merchant / payer'),
+          MerchantField(
+            kind: s.kind,
+            categoryId: _categoryId,
+            initialValue: _merchant,
+            onChanged: (v) => setState(() {
+              _merchant = v;
+              _merchantMissing = false;
+            }),
+            decoration: InputDecoration(errorText: _merchantMissing ? merchantMissingMessage(s.kind) : null),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _notes,
-            decoration: const InputDecoration(labelText: 'Notes'),
+            decoration: const InputDecoration(labelText: 'Notes (optional)'),
           ),
           const SizedBox(height: 12),
           ListTile(

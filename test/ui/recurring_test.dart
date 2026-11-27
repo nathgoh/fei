@@ -86,4 +86,48 @@ void main() {
     expect(await dbRun(tester, db.transactionsBetween), hasLength(before));
     await unmount(tester);
   });
+
+  testWidgets('the series editor requires a merchant and suggests them', (tester) async {
+    final (db, _) = await pumpFei(
+      tester,
+      seed: (db) async {
+        await seed(db);
+        await addTxn(db, category: 'Health', cents: 2000, date: todayYmd(), merchant: 'Pharmacy');
+        await addSeries(db, category: 'Paycheck', cents: 300000, start: todayYmd());
+      },
+    );
+    await openTab(tester, 'Recurring');
+    await tester.tap(find.text('Gym').last);
+    await settle(tester);
+    final merchant = find.widgetWithText(TextField, 'Merchant');
+    expect(merchant, findsOneWidget);
+    expect(find.text('Notes (optional)'), findsOneWidget);
+
+    // Health's merchants, most used first (Gym has its series plus an occurrence).
+    await tester.enterText(merchant, '');
+    await settle(tester);
+    final suggestionTile = find.ancestor(of: find.byIcon(Icons.history), matching: find.byType(ListTile));
+    expect(tester.widgetList<ListTile>(suggestionTile).map((t) => (t.title! as Text).data), ['Gym', 'Pharmacy']);
+
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect(find.text('Enter a merchant'), findsOneWidget);
+    expect((await dbRun(tester, db.allRecurring)).map((s) => s.merchant), containsAll(['Gym', 'Old streaming']));
+
+    await tester.tap(find.ancestor(of: find.text('Pharmacy'), matching: suggestionTile));
+    await settle(tester);
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect((await dbRun(tester, db.allRecurring)).map((s) => s.merchant), contains('Pharmacy'));
+
+    // An income series with no merchant asks for a source.
+    await scrollTo(tester, find.text('Paycheck').last);
+    await tester.tap(find.text('Paycheck').last);
+    await settle(tester);
+    expect(find.widgetWithText(TextField, 'Source'), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect(find.text('Enter a source'), findsOneWidget);
+    await unmount(tester);
+  });
 }
