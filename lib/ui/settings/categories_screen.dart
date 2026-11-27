@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../state/providers.dart';
+import '../emoji_glyph.dart';
+import '../emoji_picker_sheet.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -213,7 +215,7 @@ class _CategoryDialog extends ConsumerStatefulWidget {
 
 class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
   late final _name = TextEditingController(text: widget.category?.name ?? '');
-  late final _emoji = TextEditingController(text: widget.category?.emoji ?? '🏷️');
+  late String _emoji = widget.category?.emoji ?? '🏷️';
   late int _color = widget.category?.color ?? _palette.first;
   late bool _fixed = widget.category?.isFixed ?? false;
   late String? _groupId = widget.category?.groupId ?? widget.groupId;
@@ -221,7 +223,6 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
   @override
   void dispose() {
     _name.dispose();
-    _emoji.dispose();
     super.dispose();
   }
 
@@ -236,14 +237,13 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       showMessage(context, 'Category already exists');
       return;
     }
-    final emoji = _emoji.text.trim().isEmpty ? '🏷️' : _emoji.text.trim();
     final db = ref.read(databaseProvider);
     if (widget.category == null) {
       await db.addCategory(
         name: name,
         groupId: _groupId!,
         kind: widget.kind,
-        emoji: emoji,
+        emoji: _emoji,
         color: _color,
         isFixed: _fixed,
       );
@@ -252,7 +252,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
         widget.category!.id,
         CategoriesCompanion(
           name: Value(name),
-          emoji: Value(emoji),
+          emoji: Value(_emoji),
           color: Value(_color),
           isFixed: Value(_fixed),
           groupId: Value(_groupId!),
@@ -260,6 +260,11 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       );
     }
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _pickEmoji() async {
+    final emoji = await pickEmoji(context);
+    if (emoji != null && mounted) setState(() => _emoji = emoji);
   }
 
   Future<void> _delete() async {
@@ -317,15 +322,12 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
             children: [
               Row(
                 children: [
-                  SizedBox(
-                    width: 72,
-                    child: TextField(
-                      controller: _emoji,
-                      textAlign: TextAlign.center,
-                      // Line height 1.0 keeps the line at 24px, matching the Name field so both boxes align.
-                      style: const TextStyle(fontSize: 24, height: 1.0),
-                      decoration: const InputDecoration(labelText: 'Icon'),
-                      onChanged: (_) => setState(() {}),
+                  Tooltip(
+                    message: 'Choose icon',
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _pickEmoji,
+                      child: _IconPreview(emoji: _emoji, color: _color),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -347,12 +349,26 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                   for (final e in _emojis)
                     InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: () => setState(() => _emoji.text = e),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(e, style: const TextStyle(fontSize: 20)),
+                      onTap: () => setState(() => _emoji = e),
+                      child: Ink(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: e == _emoji ? context.colors.secondaryContainer : null,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(child: EmojiGlyph(e, size: 20)),
                       ),
                     ),
+                  IconButton(
+                    tooltip: 'More emoji',
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    icon: const Icon(Icons.add_reaction_outlined),
+                    onPressed: _pickEmoji,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -419,6 +435,40 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(onPressed: _save, child: const Text('Save')),
       ],
+    );
+  }
+}
+
+/// The category's icon as it will look, with a small pencil to show it can
+/// be changed.
+class _IconPreview extends StatelessWidget {
+  const _IconPreview({required this.emoji, required this.color});
+  final String emoji;
+  final int color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Stack(
+        children: [
+          Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Color(color).withValues(alpha: 0.22), shape: BoxShape.circle),
+            child: EmojiGlyph(emoji, size: 28),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: CircleAvatar(
+              radius: 10,
+              backgroundColor: context.colors.surfaceContainerHighest,
+              child: Icon(Icons.edit, size: 12, color: context.colors.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
